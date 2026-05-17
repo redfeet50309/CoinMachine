@@ -54,9 +54,10 @@ try {
   Write-Log 'git pull --rebase'
   Invoke-Native -exe 'git' -argList @('pull', '--rebase') -label 'git pull' | Out-Null
 
-  Write-Log 'python scripts/build_dataset.py'
-  $py = (Get-Command python).Source
-  Invoke-Native -exe $py -argList @('scripts\build_dataset.py') -label 'build_dataset.py' | Out-Null
+  # Use py.exe launcher to find the system Python 3.11 (with pandas installed).
+  # Plain `python` on PATH may resolve to a sandboxed venv that lacks deps.
+  Write-Log 'py -3 scripts/build_dataset.py'
+  Invoke-Native -exe 'py' -argList @('-3', 'scripts\build_dataset.py') -label 'build_dataset.py' | Out-Null
 
   Write-Log 'git add data/'
   Invoke-Native -exe 'git' -argList @('add', 'data/') -label 'git add' | Out-Null
