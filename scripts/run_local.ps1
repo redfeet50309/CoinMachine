@@ -70,7 +70,9 @@ try {
   } else {
     $date = (Get-Date).ToString('yyyy-MM-dd')
     Write-Log "git commit + push: $date"
-    Invoke-Native -exe 'git' -argList @('commit', '-m', "data: $date daily update") -label 'git commit' | Out-Null
+    # No spaces in commit message — Start-Process doesn't quote multi-word args
+    # reliably for native exes, so we use hyphens to keep it as a single token.
+    Invoke-Native -exe 'git' -argList @('commit', '-m', "data:$date-daily-update") -label 'git commit' | Out-Null
     Invoke-Native -exe 'git' -argList @('push') -label 'git push' | Out-Null
   }
 
