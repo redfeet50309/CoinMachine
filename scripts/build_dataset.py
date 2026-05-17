@@ -31,7 +31,7 @@ from config import (
     WARMUP_MONTHS,
     WATCHLIST_FILE,
 )
-from fetch_twse import Bar, FetchError, detect_market, fetch_history, fetch_twse_latest_all
+from fetch_twse import Bar, FetchError, detect_market, fetch_history, fetch_twse_latest_all, is_twse_legacy_alive
 
 log = logging.getLogger(__name__)
 TAIPEI_TZ = timezone(timedelta(hours=8))
@@ -96,14 +96,15 @@ def _start_date(existing: list[dict]) -> date:
 def update_stock(
     entry: dict,
     twse_snapshot: dict[str, Bar] | None = None,
+    use_twse_legacy: bool = False,
     force_full: bool = False,
 ) -> dict[str, Any]:
     """Update one stock; return result summary for meta tracking.
 
-    For TWSE stocks we use the bulk OpenAPI snapshot (twse_snapshot) which
-    contains the latest trading day for every listed stock — the legacy
-    /exchangeReport/STOCK_DAY endpoint started returning 404 in 2026-05 and
-    OpenAPI is the only working source. TPEx still uses per-stock month fetch.
+    TWSE flow has two modes (decided per-run by probing):
+    - legacy alive → fetch_history with per-stock month endpoint (full backfill possible)
+    - legacy dead  → fall back to twse_snapshot (latest trading day only)
+    TPEx always uses per-stock month fetch (its endpoint is stable).
     """
     stock_id = entry["id"]
     name = entry.get("name", stock_id)
@@ -119,16 +120,22 @@ def update_stock(
 
     fresh: list[Bar] = []
     if market == "TWSE":
-        # OpenAPI provides only the most recent trading day per stock.
-        # Backfill of older days is no longer possible via TWSE — existing
-        # history files carry the warmup data.
+        if use_twse_legacy:
+            start = _start_date(existing_history)
+            end = date.today()
+            if start <= end:
+                try:
+                    fresh = fetch_history(stock_id, market, start, end)
+                except FetchError:
+                    fresh = []
+        # Always also try snapshot in case legacy missed today or wasn't used.
         if twse_snapshot is None:
             twse_snapshot = fetch_twse_latest_all()
         bar = twse_snapshot.get(stock_id)
         if bar is not None:
-            existing_dates = {b["date"] for b in existing_history}
-            if bar.date not in existing_dates:
-                fresh = [bar]
+            seen = {b.date for b in fresh} | {b["date"] for b in existing_history}
+            if bar.date not in seen:
+                fresh.append(bar)
     else:  # TPEx
         start = _start_date(existing_history)
         end = date.today()
@@ -279,10 +286,12 @@ def main(argv: list[str] | None = None) -> int:
     results: list[dict] = []
     failures: list[dict] = []
 
-    # One-shot bulk fetch for all TWSE stocks (only endpoint that still works
-    # since 2026-05). TPEx stocks fall through to per-stock month fetch below.
+    has_twse = any(e.get("market") == "TWSE" or e.get("market") is None for e in entries)
+    use_twse_legacy = False
     twse_snapshot: dict[str, Bar] = {}
-    if any(e.get("market") == "TWSE" or e.get("market") is None for e in entries):
+    if has_twse:
+        use_twse_legacy = is_twse_legacy_alive()
+        log.info("TWSE legacy endpoint: %s", "alive (per-stock month fetch)" if use_twse_legacy else "dead (snapshot fallback)")
         try:
             twse_snapshot = fetch_twse_latest_all()
             log.info("twse snapshot: %d stocks for latest trading day", len(twse_snapshot))
@@ -291,10 +300,12 @@ def main(argv: list[str] | None = None) -> int:
 
     for i, entry in enumerate(entries):
         sid = entry["id"]
-        if i > 0 and entry.get("market") != "TWSE":
-            time.sleep(REQUEST_DELAY_SEC)
+        # Delay between requests when we hit any month endpoint
+        if i > 0:
+            if entry.get("market") != "TWSE" or use_twse_legacy:
+                time.sleep(REQUEST_DELAY_SEC)
         try:
-            r = update_stock(entry, twse_snapshot=twse_snapshot)
+            r = update_stock(entry, twse_snapshot=twse_snapshot, use_twse_legacy=use_twse_legacy)
             log.info("ok %s %s (%s)", sid, r.get("market"), r.get("last_trade_date"))
             results.append(r)
         except FetchError as e:

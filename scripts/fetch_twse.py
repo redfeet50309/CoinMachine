@@ -161,6 +161,20 @@ def _parse_tpex(payload: dict) -> list[Bar]:
     return bars
 
 
+def is_twse_legacy_alive() -> bool:
+    """Probe whether /exchangeReport/STOCK_DAY is currently serving real data.
+
+    The legacy per-stock month endpoint started returning 404 from HiNetCDN
+    on 2026-05-17 morning, then recovered later the same day. Status flips
+    are not announced, so we probe each run.
+    """
+    try:
+        bars = fetch_month("2330", "TWSE", 2026, 3)
+        return len(bars) > 0
+    except Exception:
+        return False
+
+
 def fetch_twse_latest_all() -> dict[str, Bar]:
     """One-shot snapshot of the latest trading day for every TWSE-listed stock.
 

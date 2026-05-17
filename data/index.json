@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-17T19:14:58+08:00",
+  "generated_at": "2026-05-17T19:18:23+08:00",
   "schema_version": 1,
   "stocks": [
     {
@@ -34,8 +34,8 @@
       "id": "3105",
       "name": "穩懋",
       "market": "TPEx",
-      "updated": "2026-05-15",
-      "status": "ok"
+      "updated": null,
+      "status": "unknown"
     },
     {
       "id": "2301",
@@ -48,8 +48,8 @@
       "id": "3131",
       "name": "弘塑",
       "market": "TPEx",
-      "updated": "2026-05-15",
-      "status": "ok"
+      "updated": null,
+      "status": "unknown"
     }
   ]
 }
