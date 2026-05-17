@@ -66,9 +66,9 @@ def _ma_cross(today: pd.Series, yesterday: pd.Series, trend_anchor: pd.Series) -
     crossed_dn = y5 >= y20 and t5 < t20
 
     if crossed_up and (a20 is None or pd.isna(a20) or t20 >= a20):
-        return "黃金交叉 (5/20)"
+        return "黃金交叉 (MA5 上穿 MA20)"
     if crossed_dn and (a20 is None or pd.isna(a20) or t20 <= a20):
-        return "死亡交叉 (5/20)"
+        return "死亡交叉 (MA5 下穿 MA20)"
     return None
 
 
