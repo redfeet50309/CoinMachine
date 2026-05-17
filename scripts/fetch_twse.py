@@ -37,6 +37,7 @@ from config import (
     RETRY_MIN_WAIT,
     TPEX_ENDPOINT,
     TWSE_ENDPOINT,
+    TWSE_OPENAPI_STOCK_DAY_ALL,
     USER_AGENT,
 )
 
@@ -158,6 +159,37 @@ def _parse_tpex(payload: dict) -> list[Bar]:
         except (IndexError, ValueError) as e:
             log.warning("tpex parse row failed: %s (%s)", r, e)
     return bars
+
+
+def fetch_twse_latest_all() -> dict[str, Bar]:
+    """One-shot snapshot of the latest trading day for every TWSE-listed stock.
+
+    Uses the official OpenAPI endpoint, which is the only TWSE source still
+    serving daily OHLCV reliably (the legacy /exchangeReport/STOCK_DAY started
+    returning 404 from HiNetCDN in mid-2026). Returns dict keyed by stock id.
+    """
+    payload = _get_json(TWSE_OPENAPI_STOCK_DAY_ALL, {})
+    if not isinstance(payload, list):
+        return {}
+    out: dict[str, Bar] = {}
+    for row in payload:
+        try:
+            code = row.get("Code")
+            roc_date = row.get("Date")  # "1150515" = 2026/05/15
+            if not code or not roc_date or len(roc_date) < 7:
+                continue
+            iso_date = f"{int(roc_date[:-4]) + 1911:04d}-{roc_date[-4:-2]}-{roc_date[-2:]}"
+            out[code] = Bar(
+                date=iso_date,
+                open=_to_float(row.get("OpeningPrice", "")),
+                high=_to_float(row.get("HighestPrice", "")),
+                low=_to_float(row.get("LowestPrice", "")),
+                close=_to_float(row.get("ClosingPrice", "")),
+                volume=_to_int(row.get("TradeVolume", "0")),
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            log.warning("twse openapi row parse failed: %s (%s)", row, e)
+    return out
 
 
 def fetch_month(stock_id: str, market: Market, year: int, month: int) -> list[Bar]:

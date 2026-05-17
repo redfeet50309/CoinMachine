@@ -31,7 +31,7 @@ from config import (
     WARMUP_MONTHS,
     WATCHLIST_FILE,
 )
-from fetch_twse import Bar, FetchError, detect_market, fetch_history
+from fetch_twse import Bar, FetchError, detect_market, fetch_history, fetch_twse_latest_all
 
 log = logging.getLogger(__name__)
 TAIPEI_TZ = timezone(timedelta(hours=8))
@@ -93,8 +93,18 @@ def _start_date(existing: list[dict]) -> date:
     return (today - relativedelta(months=WARMUP_MONTHS)).replace(day=1)
 
 
-def update_stock(entry: dict, force_full: bool = False) -> dict[str, Any]:
-    """Update one stock; return result summary for meta tracking."""
+def update_stock(
+    entry: dict,
+    twse_snapshot: dict[str, Bar] | None = None,
+    force_full: bool = False,
+) -> dict[str, Any]:
+    """Update one stock; return result summary for meta tracking.
+
+    For TWSE stocks we use the bulk OpenAPI snapshot (twse_snapshot) which
+    contains the latest trading day for every listed stock — the legacy
+    /exchangeReport/STOCK_DAY endpoint started returning 404 in 2026-05 and
+    OpenAPI is the only working source. TPEx still uses per-stock month fetch.
+    """
     stock_id = entry["id"]
     name = entry.get("name", stock_id)
     market = entry.get("market")
@@ -107,12 +117,23 @@ def update_stock(entry: dict, force_full: bool = False) -> dict[str, Any]:
         market = detect_market(stock_id)
         time.sleep(REQUEST_DELAY_SEC)
 
-    start = _start_date(existing_history)
-    end = date.today()
-
     fresh: list[Bar] = []
-    if start <= end:
-        fresh = fetch_history(stock_id, market, start, end)
+    if market == "TWSE":
+        # OpenAPI provides only the most recent trading day per stock.
+        # Backfill of older days is no longer possible via TWSE — existing
+        # history files carry the warmup data.
+        if twse_snapshot is None:
+            twse_snapshot = fetch_twse_latest_all()
+        bar = twse_snapshot.get(stock_id)
+        if bar is not None:
+            existing_dates = {b["date"] for b in existing_history}
+            if bar.date not in existing_dates:
+                fresh = [bar]
+    else:  # TPEx
+        start = _start_date(existing_history)
+        end = date.today()
+        if start <= end:
+            fresh = fetch_history(stock_id, market, start, end)
 
     merged = _merge_bars(existing_history, fresh)
     df_full = _bars_to_df(merged)
@@ -258,12 +279,22 @@ def main(argv: list[str] | None = None) -> int:
     results: list[dict] = []
     failures: list[dict] = []
 
+    # One-shot bulk fetch for all TWSE stocks (only endpoint that still works
+    # since 2026-05). TPEx stocks fall through to per-stock month fetch below.
+    twse_snapshot: dict[str, Bar] = {}
+    if any(e.get("market") == "TWSE" or e.get("market") is None for e in entries):
+        try:
+            twse_snapshot = fetch_twse_latest_all()
+            log.info("twse snapshot: %d stocks for latest trading day", len(twse_snapshot))
+        except Exception as e:  # noqa: BLE001
+            log.error("twse snapshot failed: %s", e)
+
     for i, entry in enumerate(entries):
         sid = entry["id"]
-        if i > 0:
+        if i > 0 and entry.get("market") != "TWSE":
             time.sleep(REQUEST_DELAY_SEC)
         try:
-            r = update_stock(entry)
+            r = update_stock(entry, twse_snapshot=twse_snapshot)
             log.info("ok %s %s (%s)", sid, r.get("market"), r.get("last_trade_date"))
             results.append(r)
         except FetchError as e:

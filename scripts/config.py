@@ -12,6 +12,7 @@ RULE_VERSION = "v1.0.0"
 SCHEMA_VERSION = 1
 
 TWSE_ENDPOINT = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
+TWSE_OPENAPI_STOCK_DAY_ALL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
 TPEX_ENDPOINT = "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
 
 USER_AGENT = (
