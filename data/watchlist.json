@@ -8,15 +8,15 @@
       "added_at": "2026-05-17"
     },
     {
-      "id": "8039",
-      "name": "台虹",
-      "market": "TWSE",
-      "added_at": "2026-05-17"
-    },
-    {
       "id": "8299",
       "name": "群聯",
       "market": "TPEx",
+      "added_at": "2026-05-17"
+    },
+    {
+      "id": "8039",
+      "name": "台虹",
+      "market": "TWSE",
       "added_at": "2026-05-17"
     },
     {
