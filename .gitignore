@@ -13,3 +13,4 @@ node_modules/
 *.egg-info/
 build/
 dist/
+data/last_run.log

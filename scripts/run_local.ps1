@@ -5,7 +5,7 @@
 # Setup:
 #   1. Make sure 'git' and 'python' are on PATH
 #   2. Make sure 'gh auth setup-git' has been run (so push works without prompt)
-#   3. Register with Task Scheduler (see scripts/register_task.ps1)
+#   3. Register with Task Scheduler:  .\scripts\register_task.ps1
 
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -22,34 +22,62 @@ function Write-Log($msg) {
   Add-Content -Path $logFile -Value $line -Encoding utf8
 }
 
+# Run a native exe via Start-Process so PowerShell does not wrap stderr lines
+# as ErrorRecord objects (which would trip ErrorActionPreference=Stop on the
+# very first INFO log line from Python).
+function Invoke-Native($exe, $argList, $label) {
+  $tmpOut = Join-Path $env:TEMP "cm_$([guid]::NewGuid().ToString('N')).out"
+  $tmpErr = Join-Path $env:TEMP "cm_$([guid]::NewGuid().ToString('N')).err"
+  try {
+    $proc = Start-Process -FilePath $exe -ArgumentList $argList `
+      -NoNewWindow -Wait -PassThru `
+      -RedirectStandardOutput $tmpOut -RedirectStandardError $tmpErr
+    foreach ($f in @($tmpOut, $tmpErr)) {
+      if (Test-Path $f) {
+        Get-Content $f -Encoding utf8 -ErrorAction SilentlyContinue |
+          Where-Object { $_ -ne $null -and $_.Trim() -ne '' } |
+          ForEach-Object { Write-Log $_ }
+      }
+    }
+    if ($proc.ExitCode -ne 0) {
+      throw "$label exited with code $($proc.ExitCode)"
+    }
+    return $proc.ExitCode
+  } finally {
+    Remove-Item $tmpOut, $tmpErr -ErrorAction SilentlyContinue
+  }
+}
+
 Write-Log '--- run start ---'
 
 try {
   Write-Log 'git pull --rebase'
-  git pull --rebase 2>&1 | ForEach-Object { Write-Log $_ }
+  Invoke-Native -exe 'git' -argList @('pull', '--rebase') -label 'git pull' | Out-Null
 
-  Write-Log 'python build_dataset.py'
+  Write-Log 'python scripts/build_dataset.py'
   $py = (Get-Command python).Source
-  & $py scripts\build_dataset.py 2>&1 | ForEach-Object { Write-Log $_ }
-  if ($LASTEXITCODE -ne 0) { throw "build_dataset.py exited with $LASTEXITCODE" }
+  Invoke-Native -exe $py -argList @('scripts\build_dataset.py') -label 'build_dataset.py' | Out-Null
 
   Write-Log 'git add data/'
-  git add data/ 2>&1 | ForEach-Object { Write-Log $_ }
+  Invoke-Native -exe 'git' -argList @('add', 'data/') -label 'git add' | Out-Null
 
-  $diff = git diff --cached --quiet
-  if ($LASTEXITCODE -eq 0) {
+  # Use plumbing porcelain: rev-parse + diff-index instead of `diff --cached --quiet`
+  # which exits non-zero (= "there are changes") and would trip our error trap.
+  $stagedDiff = & git diff --cached --name-only
+  if ([string]::IsNullOrWhiteSpace($stagedDiff)) {
     Write-Log 'no data changes; skipping push'
   } else {
     $date = (Get-Date).ToString('yyyy-MM-dd')
     Write-Log "git commit + push: $date"
-    git commit -m "data: $date daily update" 2>&1 | ForEach-Object { Write-Log $_ }
-    git push 2>&1 | ForEach-Object { Write-Log $_ }
+    Invoke-Native -exe 'git' -argList @('commit', '-m', "data: $date daily update") -label 'git commit' | Out-Null
+    Invoke-Native -exe 'git' -argList @('push') -label 'git push' | Out-Null
   }
 
   Write-Log '--- run ok ---'
   exit 0
 } catch {
   Write-Log "ERROR: $_"
+  if ($_.ScriptStackTrace) { Write-Log "STACK: $($_.ScriptStackTrace)" }
   Write-Log '--- run failed ---'
   exit 1
 }
