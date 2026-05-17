@@ -2,14 +2,14 @@
   "version": 1,
   "stocks": [
     {
-      "id": "2605",
-      "name": "新興",
+      "id": "2301",
+      "name": "光寶科",
       "market": "TWSE",
       "added_at": "2026-05-17"
     },
     {
-      "id": "2301",
-      "name": "光寶科",
+      "id": "2605",
+      "name": "新興",
       "market": "TWSE",
       "added_at": "2026-05-17"
     },
