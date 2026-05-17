@@ -7,10 +7,14 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E📈%3C/text%3E%3C/svg%3E">
-  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
   <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
+  <script defer src="rules.js?v=2"></script>
+  <script defer src="api.js?v=2"></script>
+  <script defer src="chart.js?v=2"></script>
+  <script defer src="app.js?v=2"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
-<body x-data="app" x-init="init()">
+<body x-data="appComponent()" x-init="init()">
 
 <header class="topbar">
   <div class="brand">
@@ -136,6 +140,5 @@
   <p class="src">資料來源：TWSE 證交所 / TPEx 櫃買中心 · 本服務僅供研究參考，不構成投資建議</p>
 </footer>
 
-<script type="module" src="app.js"></script>
 </body>
 </html>
