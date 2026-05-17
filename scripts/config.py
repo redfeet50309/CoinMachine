@@ -26,7 +26,9 @@ RETRY_MIN_WAIT = 5
 RETRY_MAX_WAIT = 60
 
 WARMUP_MONTHS = 18
-HISTORY_KEEP_DAYS = 180
+# Must be >= longest MA window (240) + buffer, otherwise re-runs that read
+# JSON back as the starting point will lose enough warmup to compute MA240.
+HISTORY_KEEP_DAYS = 280
 
 MA_PERIODS = [5, 10, 20, 60, 120, 240]
 EMA_FAST = 12
