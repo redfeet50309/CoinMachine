@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CoinMachine — 台股技術指標追蹤</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E📈%3C/text%3E%3C/svg%3E">
+  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body x-data="app()" x-init="init()">
+
+<header class="topbar">
+  <div class="brand">
+    <h1>CoinMachine</h1>
+    <span class="tagline">台股 MA / MACD 自選追蹤</span>
+  </div>
+  <div class="meta" x-show="meta">
+    <span>最後更新：<strong x-text="formatTime(meta?.last_run)"></strong></span>
+    <a href="settings.html" class="settings-link">⚙ 設定</a>
+  </div>
+</header>
+
+<section class="controls">
+  <div class="search">
+    <input
+      type="text"
+      x-model="addId"
+      @keydown.enter="addStock()"
+      placeholder="輸入股票代號 (例：2330)，按 Enter 新增"
+      maxlength="6">
+    <button @click="addStock()" :disabled="!addId || busy">新增</button>
+  </div>
+  <div class="banner" x-show="!hasPat">
+    <span>未設定 GitHub PAT — 新增/刪除會只存在這台電腦。<a href="settings.html">前往設定</a> 啟用同步。</span>
+  </div>
+  <div class="banner error" x-show="error" x-text="error"></div>
+</section>
+
+<main class="grid">
+  <template x-for="card in displayed" :key="card.id">
+    <article class="card" :class="{ open: expanded === card.id }">
+      <header class="card-head" @click="toggle(card.id)">
+        <div class="id-name">
+          <span class="code" x-text="card.id"></span>
+          <span class="name" x-text="card.name"></span>
+          <span class="market" x-text="card.market"></span>
+        </div>
+        <div class="price" x-show="card.data">
+          <strong x-text="formatPrice(card.data?.latest?.close)"></strong>
+        </div>
+        <button class="remove" @click.stop="removeStock(card.id)">×</button>
+      </header>
+
+      <template x-if="!card.data">
+        <div class="loading">資料未就緒（等待 Actions 跑批）</div>
+      </template>
+
+      <template x-if="card.data">
+        <div class="body">
+          <template x-if="card.data.latest.alerts?.length">
+            <div class="alerts">
+              <template x-for="alert in card.data.latest.alerts">
+                <div class="alert" x-text="alert"></div>
+              </template>
+            </div>
+          </template>
+
+          <section class="block">
+            <h3>均線 MA</h3>
+            <div class="badges">
+              <span class="badge" :class="trendClass(card.data.latest.signals.ma_trend)"
+                    x-text="card.data.latest.signals.ma_trend"></span>
+              <span class="badge cross" x-show="card.data.latest.signals.ma_cross"
+                    x-text="card.data.latest.signals.ma_cross"></span>
+              <span class="badge" x-text="card.data.latest.signals.ma_spread_state"></span>
+            </div>
+            <div class="ma-grid">
+              <template x-for="period in [5, 10, 20, 60, 120, 240]">
+                <div class="ma-cell">
+                  <span class="label" x-text="'MA' + period"></span>
+                  <span class="val" x-text="formatPrice(card.data.latest.ma['ma' + period])"></span>
+                </div>
+              </template>
+            </div>
+          </section>
+
+          <section class="block">
+            <h3>MACD</h3>
+            <div class="badges">
+              <span class="badge" :class="zoneClass(card.data.latest.signals.macd_zone)"
+                    x-text="card.data.latest.signals.macd_zone"></span>
+              <span class="badge cross" x-show="card.data.latest.signals.macd_cross"
+                    x-text="card.data.latest.signals.macd_cross"></span>
+              <span class="badge hist" :class="histClass(card.data.latest.signals.macd_histogram)"
+                    x-show="card.data.latest.signals.macd_histogram"
+                    x-text="card.data.latest.signals.macd_histogram"></span>
+              <span class="badge diverge" x-show="card.data.latest.signals.macd_divergence"
+                    x-text="card.data.latest.signals.macd_divergence"></span>
+            </div>
+            <div class="macd-row">
+              <div><span class="label">DIF</span><span x-text="formatNum(card.data.latest.macd.dif)"></span></div>
+              <div><span class="label">MACD</span><span x-text="formatNum(card.data.latest.macd.macd)"></span></div>
+              <div><span class="label">OSC</span><span x-text="formatNum(card.data.latest.macd.osc)"></span></div>
+            </div>
+          </section>
+
+          <template x-if="expanded === card.id">
+            <section class="charts">
+              <div class="chart-container" :id="'chart-price-' + card.id"></div>
+              <div class="chart-container small" :id="'chart-macd-' + card.id"></div>
+              <p class="warning">注意：價格未還原除權息，跨除權息日均線會跳空</p>
+            </section>
+          </template>
+        </div>
+      </template>
+    </article>
+  </template>
+
+  <div class="empty" x-show="!displayed.length && !loading">
+    <p>還沒有追蹤的股票。在上面輸入代號新增。</p>
+  </div>
+</main>
+
+<footer>
+  <details x-show="meta?.failures?.length">
+    <summary>抓取失敗 (<span x-text="meta?.failures?.length"></span>)</summary>
+    <ul>
+      <template x-for="f in meta?.failures || []">
+        <li><strong x-text="f.id"></strong>: <span x-text="f.reason"></span></li>
+      </template>
+    </ul>
+  </details>
+  <p class="src">資料來源：TWSE 證交所 / TPEx 櫃買中心 · 本服務僅供研究參考，不構成投資建議</p>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

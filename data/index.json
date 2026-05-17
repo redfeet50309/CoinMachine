@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-05-17T09:26:03+08:00",
+  "schema_version": 1,
+  "stocks": [
+    {
+      "id": "8299",
+      "name": "群聯",
+      "market": "TPEx",
+      "updated": "2026-05-15",
+      "status": "ok"
+    },
+    {
+      "id": "2368",
+      "name": "金像電",
+      "market": "TWSE",
+      "updated": null,
+      "status": "unknown"
+    },
+    {
+      "id": "2449",
+      "name": "京元電",
+      "market": "TWSE",
+      "updated": null,
+      "status": "unknown"
+    }
+  ]
+}

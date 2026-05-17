@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定 — CoinMachine</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body x-data="settingsPage()" x-init="init()">
+
+<header class="topbar">
+  <div class="brand">
+    <h1>設定</h1>
+    <span class="tagline">CoinMachine</span>
+  </div>
+  <a href="index.html">← 返回首頁</a>
+</header>
+
+<main style="max-width: 720px; margin: 0 auto; padding: 24px 20px;">
+
+  <section class="block" style="background: var(--surface); padding: 18px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 18px;">
+    <h2 style="margin: 0 0 10px;">GitHub Personal Access Token</h2>
+    <p style="margin: 0 0 14px; color: var(--text-dim);">
+      設定 PAT 後，在主頁新增/移除股票會自動 commit 到 repo，下次 Actions 跑批時就會抓新代號的資料。
+      <strong style="color: var(--warn);">PAT 只存在你這台電腦的 localStorage，沒有送到任何伺服器。</strong>
+    </p>
+
+    <ol style="line-height: 1.8; color: var(--text-dim);">
+      <li>到 <a href="https://github.com/settings/tokens?type=beta" target="_blank">GitHub 設定 → Fine-grained PAT</a>，按「Generate new token」</li>
+      <li>名稱填例如 <code>CoinMachine-watchlist</code>，到期日建議 90 天</li>
+      <li>Resource owner 選你自己 (redfeet50309)</li>
+      <li>Repository access 選「Only select repositories」→ 勾 <code>CoinMachine</code></li>
+      <li>Permissions → Repository permissions → <strong>Contents: Read and write</strong>，其餘留 No access</li>
+      <li>Generate token，複製貼到下面</li>
+    </ol>
+
+    <div style="display: flex; gap: 8px; margin-top: 14px;">
+      <input
+        type="password"
+        x-model="patInput"
+        placeholder="ghp_... 或 github_pat_..."
+        style="flex: 1; padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-family: ui-monospace, monospace;">
+      <button @click="save()" :disabled="!patInput"
+        style="padding: 9px 18px; border: none; border-radius: 6px; background: var(--accent); color: white; font-weight: 600; cursor: pointer;">
+        儲存
+      </button>
+    </div>
+
+    <p x-show="hasPat" style="margin-top: 12px; padding: 8px 12px; background: rgba(38, 166, 154, 0.15); border-left: 3px solid var(--bear); border-radius: 4px;">
+      已設定 PAT（最後 4 碼：<code x-text="patSuffix"></code>）
+      <button @click="clear()" style="margin-left: 10px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 3px 8px; border-radius: 4px; cursor: pointer;">清除</button>
+    </p>
+
+    <p x-show="message" :style="{ color: messageOk ? 'var(--bear)' : 'var(--bull)' }" x-text="message" style="margin-top: 10px;"></p>
+  </section>
+
+  <section class="block" style="background: var(--surface); padding: 18px; border-radius: 10px; border: 1px solid var(--border);">
+    <h2 style="margin: 0 0 10px;">關於</h2>
+    <p style="color: var(--text-dim); margin: 0 0 8px;">
+      <strong>資料來源</strong>：TWSE 證交所 / TPEx 櫃買中心官方 API。每晚 23:30 (台北時間) 由 GitHub Actions 自動抓取並計算指標。
+    </p>
+    <p style="color: var(--text-dim); margin: 0 0 8px;">
+      <strong>指標</strong>：MA(5/10/20/60/120/240)、MACD (12/26/9)。EMA 用 pandas 標準遞迴 (adjust=False)。
+    </p>
+    <p style="color: var(--text-dim); margin: 0;">
+      <strong>注意</strong>：價格未還原除權息，跨除權息日均線會出現跳空。本服務僅供研究參考，不構成投資建議。
+    </p>
+  </section>
+
+</main>
+
+<script>
+function settingsPage() {
+  const KEY = 'coinmachine.pat';
+  return {
+    patInput: '',
+    hasPat: false,
+    patSuffix: '',
+    message: '',
+    messageOk: true,
+    init() { this._refresh(); },
+    _refresh() {
+      const v = localStorage.getItem(KEY) || '';
+      this.hasPat = !!v;
+      this.patSuffix = v ? v.slice(-4) : '';
+    },
+    save() {
+      const t = (this.patInput || '').trim();
+      if (!t.startsWith('ghp_') && !t.startsWith('github_pat_')) {
+        this.message = 'PAT 應該以 ghp_ 或 github_pat_ 開頭';
+        this.messageOk = false;
+        return;
+      }
+      localStorage.setItem(KEY, t);
+      this.patInput = '';
+      this.message = '已儲存。回主頁就能新增/移除股票了。';
+      this.messageOk = true;
+      this._refresh();
+    },
+    clear() {
+      localStorage.removeItem(KEY);
+      this.message = '已清除';
+      this.messageOk = true;
+      this._refresh();
+    },
+  };
+}
+</script>
+</body>
+</html>
