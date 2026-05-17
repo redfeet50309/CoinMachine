@@ -28,56 +28,11 @@
         return ids.map(id => this.cards.find(c => c.id === id)).filter(Boolean);
       },
 
-      _lastDragAt: 0,
-      _sortable: null,
-
       async init() {
         this.hasPat = !!getPat();
         await this.refresh();
         this.loading = false;
-        // Wait one tick for Alpine to render cards before binding Sortable
-        queueMicrotask(() => this._setupSortable());
-        setInterval(() => {
-          // Skip auto-refresh briefly after a drag so the just-saved order
-          // doesn't get overwritten by an in-flight stale server read
-          if (Date.now() - this._lastDragAt < 8000) return;
-          this.refresh().catch(() => {});
-        }, POLL_MS);
-      },
-
-      _setupSortable() {
-        const grid = document.querySelector('.grid');
-        if (!grid || this._sortable || typeof Sortable === 'undefined') return;
-        this._sortable = Sortable.create(grid, {
-          draggable: '.card',
-          handle: '.drag-handle',
-          animation: 180,
-          ghostClass: 'card-ghost',
-          chosenClass: 'card-chosen',
-          dragClass: 'card-drag',
-          forceFallback: false,
-          onEnd: (evt) => {
-            if (evt.oldIndex === evt.newIndex) return;
-            // INSERT mode: pull item out at oldIndex, splice in at newIndex.
-            // Cards between the two positions shift by 1 toward the source.
-            const stocks = [...this.watchlist.stocks];
-            const moved = stocks.splice(evt.oldIndex, 1)[0];
-            stocks.splice(evt.newIndex, 0, moved);
-            this.watchlist = { ...this.watchlist, stocks };
-            this._saveOrder().catch(e => {
-              this.error = `儲存排序失敗：${e.message}`;
-            });
-          },
-        });
-      },
-
-      async _saveOrder() {
-        this._lastDragAt = Date.now();
-        const next = this.watchlist;
-        writeLocalWatchlist(next);
-        if (this.hasPat) {
-          await writeWatchlist(next, 'watchlist: reorder');
-        }
+        setInterval(() => this.refresh().catch(() => {}), POLL_MS);
       },
 
       async refresh() {

@@ -55,6 +55,48 @@
     <p x-show="message" :style="{ color: messageOk ? 'var(--bear)' : 'var(--bull)' }" x-text="message" style="margin-top: 10px;"></p>
   </section>
 
+  <section class="block sort-section" style="background: var(--surface); padding: 18px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 18px;">
+    <h2 style="margin: 0 0 10px;">自選清單排序</h2>
+    <p style="margin: 0 0 14px; color: var(--text-dim);">
+      點 <strong>▲</strong> / <strong>▼</strong> 把卡片往上或往下移一格，按「儲存排序」套用。
+      <span x-show="!hasPat" style="color: var(--warn);">未設定 PAT — 只會存在這台電腦的 localStorage。</span>
+    </p>
+
+    <ul x-show="sortStocks.length" style="list-style: none; padding: 0; margin: 0 0 14px;">
+      <template x-for="(s, i) in sortStocks" :key="s.id">
+        <li style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface-2); border-radius: 6px; margin-bottom: 6px;">
+          <span style="display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; background: var(--surface); border-radius: 4px; font-family: ui-monospace, monospace; color: var(--text-dim); flex-shrink: 0;" x-text="i + 1"></span>
+          <span style="flex: 1; display: flex; gap: 8px; align-items: baseline; min-width: 0;">
+            <strong style="font-family: ui-monospace, monospace;" x-text="s.id"></strong>
+            <span x-text="s.name"></span>
+            <span style="font-size: 0.75em; color: var(--text-dim); padding: 1px 5px; background: var(--surface); border-radius: 3px;" x-text="s.market"></span>
+          </span>
+          <button @click="moveUp(i)" :disabled="i===0" title="往上一格"
+            style="width: 32px; height: 32px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 4px; cursor: pointer; font-size: 1em; flex-shrink: 0;"
+            :style="i===0 ? 'opacity: 0.3; cursor: not-allowed;' : ''">▲</button>
+          <button @click="moveDown(i)" :disabled="i===sortStocks.length-1" title="往下一格"
+            style="width: 32px; height: 32px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 4px; cursor: pointer; font-size: 1em; flex-shrink: 0;"
+            :style="i===sortStocks.length-1 ? 'opacity: 0.3; cursor: not-allowed;' : ''">▼</button>
+        </li>
+      </template>
+    </ul>
+
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button @click="saveSort()" :disabled="sortSaving || !sortDirty"
+        style="padding: 9px 18px; border: none; border-radius: 6px; background: var(--accent); color: white; font-weight: 600; cursor: pointer;"
+        :style="(sortSaving || !sortDirty) ? 'opacity: 0.5; cursor: not-allowed;' : ''">
+        <span x-show="!sortSaving">儲存排序</span>
+        <span x-show="sortSaving">儲存中⋯</span>
+      </button>
+      <button @click="resetSort()" :disabled="!sortDirty"
+        style="padding: 9px 14px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); border-radius: 6px; cursor: pointer;"
+        :style="!sortDirty ? 'opacity: 0.3; cursor: not-allowed;' : ''">
+        還原
+      </button>
+      <span x-show="sortMessage" :style="{ color: sortMessageOk ? 'var(--bear)' : 'var(--bull)' }" x-text="sortMessage" style="margin-left: 4px; font-size: 0.9em;"></span>
+    </div>
+  </section>
+
   <section class="block" style="background: var(--surface); padding: 18px; border-radius: 10px; border: 1px solid var(--border);">
     <h2 style="margin: 0 0 10px;">關於</h2>
     <p style="color: var(--text-dim); margin: 0 0 8px;">
@@ -79,7 +121,7 @@ function settingsPage() {
     patSuffix: '',
     message: '',
     messageOk: true,
-    init() { this._refresh(); },
+    init() { this._refresh(); this._loadWatchlist(); },
     _refresh() {
       const v = localStorage.getItem(KEY) || '';
       this.hasPat = !!v;
@@ -103,6 +145,106 @@ function settingsPage() {
       this.message = '已清除';
       this.messageOk = true;
       this._refresh();
+    },
+
+    // === Watchlist sort ===
+    sortStocks: [],
+    _sortOriginal: '',
+    sortSaving: false,
+    sortMessage: '',
+    sortMessageOk: true,
+    get hasPat() { return !!localStorage.getItem(KEY); },
+    get sortDirty() {
+      return JSON.stringify(this.sortStocks.map(s => s.id)) !== this._sortOriginal;
+    },
+
+    async _loadWatchlist() {
+      try {
+        const r = await fetch('data/watchlist.json?t=' + Date.now(), { cache: 'no-store' });
+        const wl = await r.json();
+        this.sortStocks = [...(wl.stocks || [])];
+        this._sortOriginal = JSON.stringify(this.sortStocks.map(s => s.id));
+      } catch (e) {
+        this.sortMessage = '載入清單失敗：' + e.message;
+        this.sortMessageOk = false;
+      }
+    },
+
+    moveUp(i) {
+      if (i <= 0) return;
+      const arr = [...this.sortStocks];
+      [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
+      this.sortStocks = arr;
+      this.sortMessage = '';
+    },
+
+    moveDown(i) {
+      if (i >= this.sortStocks.length - 1) return;
+      const arr = [...this.sortStocks];
+      [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+      this.sortStocks = arr;
+      this.sortMessage = '';
+    },
+
+    resetSort() {
+      this._loadWatchlist();
+      this.sortMessage = '已還原為目前儲存的順序';
+      this.sortMessageOk = true;
+    },
+
+    async saveSort() {
+      if (this.sortSaving) return;
+      this.sortSaving = true;
+      this.sortMessage = '';
+      try {
+        const next = { version: 1, stocks: this.sortStocks };
+
+        // always store locally so this browser sees the order even without PAT
+        localStorage.setItem('coinmachine.watchlist.v1', JSON.stringify(next));
+
+        const pat = localStorage.getItem(KEY);
+        if (pat) {
+          const baseUrl = 'https://api.github.com/repos/redfeet50309/CoinMachine/contents/data/watchlist.json';
+          const getRes = await fetch(baseUrl, {
+            headers: {
+              Authorization: `Bearer ${pat}`,
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+            },
+          });
+          if (!getRes.ok) throw new Error(`GET ${getRes.status}`);
+          const current = await getRes.json();
+          const content = btoa(unescape(encodeURIComponent(JSON.stringify(next, null, 2) + '\n')));
+          const putRes = await fetch(baseUrl, {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${pat}`,
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+            },
+            body: JSON.stringify({
+              message: 'watchlist: reorder',
+              content,
+              sha: current.sha,
+              branch: 'main',
+            }),
+          });
+          if (!putRes.ok) {
+            const text = await putRes.text();
+            throw new Error(`PUT ${putRes.status}: ${text}`);
+          }
+          this.sortMessage = '已儲存並同步到 repo (約 30 秒後 Pages 重新部署)';
+        } else {
+          this.sortMessage = '已存到 localStorage (僅本機 / 本瀏覽器有效)';
+        }
+        this.sortMessageOk = true;
+        this._sortOriginal = JSON.stringify(this.sortStocks.map(s => s.id));
+      } catch (e) {
+        this.sortMessage = '儲存失敗：' + e.message;
+        this.sortMessageOk = false;
+      } finally {
+        this.sortSaving = false;
+      }
     },
   };
 }

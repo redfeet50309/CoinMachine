@@ -1,0 +1,23 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - heading "CoinMachine" [level=1] [ref=e4]
+      - generic [ref=e5]: 台股 MA / MACD 自選追蹤
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - text: 最後更新：
+        - strong [ref=e8]: 2026/5/17 20:13:56
+      - link "⚙ 設定" [ref=e9] [cursor=pointer]:
+        - /url: settings.html
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - textbox "輸入股票代號 (例：2330)，按 Enter 新增" [ref=e12]
+      - button "新增" [disabled] [ref=e13]
+    - generic [ref=e15]:
+      - text: 未設定 GitHub PAT — 新增/刪除會只存在這台電腦。
+      - link "前往設定" [ref=e16] [cursor=pointer]:
+        - /url: settings.html
+      - text: 啟用同步。
+  - main [ref=e17]
+  - contentinfo [ref=e18]:
+    - paragraph [ref=e19]: 資料來源：TWSE 證交所 / TPEx 櫃買中心 · 本服務僅供研究參考，不構成投資建議

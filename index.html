@@ -8,11 +8,10 @@
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E📈%3C/text%3E%3C/svg%3E">
   <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"></script>
-  <script defer src="rules.js?v=5"></script>
-  <script defer src="api.js?v=5"></script>
-  <script defer src="chart.js?v=5"></script>
-  <script defer src="app.js?v=5"></script>
+  <script defer src="rules.js?v=6"></script>
+  <script defer src="api.js?v=6"></script>
+  <script defer src="chart.js?v=6"></script>
+  <script defer src="app.js?v=6"></script>
   <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body x-data="appComponent()" x-init="init()">
@@ -48,7 +47,6 @@
   <template x-for="card in displayed" :key="card.id">
     <article class="card" :class="{ open: expanded === card.id }">
       <header class="card-head" @click="toggle(card.id)">
-        <span class="drag-handle" @click.stop title="拖曳這裡可以排序">⋮⋮</span>
         <div class="id-name">
           <span class="code" x-text="card.id"></span>
           <span class="name" x-text="card.name"></span>
