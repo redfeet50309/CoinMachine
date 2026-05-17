@@ -1,0 +1,52 @@
+{
+  "stock_id": "2301",
+  "name": "光寶科",
+  "market": "TWSE",
+  "last_updated": "2026-05-17T19:14:01+08:00",
+  "last_trade_date": "2026-05-15",
+  "rule_version": "v1.0.0",
+  "inactive": false,
+  "latest": {
+    "close": 204.5,
+    "volume": 41395447,
+    "ma": {
+      "ma5": null,
+      "ma10": null,
+      "ma20": null,
+      "ma60": null,
+      "ma120": null,
+      "ma240": null
+    },
+    "macd": {
+      "dif": 0.0,
+      "macd": 0.0,
+      "osc": 0.0
+    },
+    "signals": {
+      "ma_trend": "資料不足",
+      "ma_cross": null,
+      "ma_spread_state": "資料不足",
+      "macd_zone": "分歧",
+      "macd_cross": null,
+      "macd_histogram": null,
+      "macd_divergence": null
+    },
+    "alerts": []
+  },
+  "history": [
+    {
+      "date": "2026-05-15",
+      "o": 213.0,
+      "h": 218.5,
+      "l": 203.5,
+      "c": 204.5,
+      "v": 41395447,
+      "ma5": null,
+      "ma20": null,
+      "ma60": null,
+      "dif": 0.0,
+      "macd": 0.0,
+      "osc": 0.0
+    }
+  ]
+}
