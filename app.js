@@ -58,27 +58,12 @@
           forceFallback: false,
           onEnd: (evt) => {
             if (evt.oldIndex === evt.newIndex) return;
-
-            // Revert Sortable's DOM mutation: it did INSERT, we want SWAP.
-            // Move evt.item back to its original index so DOM matches old state,
-            // then update Alpine state to the swapped order — Alpine will then
-            // cleanly reorder the two swapped nodes via :key tracking.
-            const item = evt.item;
-            const parent = evt.from;
-            parent.removeChild(item);
-            const siblings = parent.querySelectorAll('.card');
-            if (evt.oldIndex < siblings.length) {
-              parent.insertBefore(item, siblings[evt.oldIndex]);
-            } else {
-              parent.appendChild(item);
-            }
-
-            // SWAP state: only A and B exchange, others stay
+            // INSERT mode: pull item out at oldIndex, splice in at newIndex.
+            // Cards between the two positions shift by 1 toward the source.
             const stocks = [...this.watchlist.stocks];
-            [stocks[evt.oldIndex], stocks[evt.newIndex]] =
-              [stocks[evt.newIndex], stocks[evt.oldIndex]];
+            const moved = stocks.splice(evt.oldIndex, 1)[0];
+            stocks.splice(evt.newIndex, 0, moved);
             this.watchlist = { ...this.watchlist, stocks };
-
             this._saveOrder().catch(e => {
               this.error = `儲存排序失敗：${e.message}`;
             });
