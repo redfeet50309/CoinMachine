@@ -24,7 +24,7 @@
   - 紅綠柱加速 / 減弱（連續 3 根趨勢）
   - 頂背離 / 底背離（近 60 日峰谷比對）
 - **K 線圖**：點卡片展開後顯示近 90 日 K 線 + MA 5/20/60 + MACD 副圖
-- **自動排程**：GitHub Actions cron，週一到週五每晚 23:30 (Asia/Taipei) 跑批
+- **自動排程**：Windows Task Scheduler，週一到週五每晚 23:30 跑批（從本地電腦抓資料，自動 push 到 repo）
 
 ## 資料來源
 
@@ -80,10 +80,10 @@ CoinMachine/
 ├── tests/
 │   └── test_indicators.py
 └── .github/workflows/
-    ├── daily-update.yml         # cron 排程
-    ├── on-watchlist-change.yml  # watchlist 變動觸發補抓
-    └── pages.yml                # GitHub Pages 部署
+    └── pages.yml                # GitHub Pages 部署 (網頁更新)
 ```
+
+每晚 23:30 的資料抓取由本機 Windows Task Scheduler 觸發（GitHub Actions runner 在美國，TWSE / TPEx 對非台灣 IP 會 geo-block）。
 
 ## 本機開發
 
@@ -103,6 +103,46 @@ python -m http.server 8000
 # 開 http://localhost:8000/
 ```
 
+## 設定每晚 23:30 自動跑批 (Windows Task Scheduler)
+
+TWSE 和 TPEx 都會把美國 IP 的請求 reject (HTTP 404 / Cloudflare 530)，所以 cron 沒辦法跑在 GitHub Actions，要跑在台灣 IP — 也就是你的電腦。
+
+一次性設定：
+
+```powershell
+# 從 PowerShell 在 repo 根目錄執行
+.\scripts\register_task.ps1
+```
+
+這會註冊一個 Windows 排程任務 `CoinMachine-daily`，每週一到五 23:30 自動跑：
+- 喚醒睡眠中的電腦
+- 跑 `python scripts/build_dataset.py`
+- 自動 `git push` 結果到 repo
+
+驗證：
+
+```powershell
+# 立即測試一次
+Start-ScheduledTask -TaskName 'CoinMachine-daily'
+
+# 查看執行紀錄
+Get-Content data\last_run.log -Tail 30
+```
+
+新增股票後想立刻看到資料（不等到 23:30），手動跑一次：
+
+```powershell
+.\scripts\run_local.ps1
+```
+
+要取消排程：
+
+```powershell
+Unregister-ScheduledTask -TaskName 'CoinMachine-daily' -Confirm:$false
+```
+
+> **電腦關機時跑不到**：23:30 時電腦如果是完全關機，當天不會跑。睡眠/休眠都可以被喚醒。如果想跨平台真正 always-on 的方案，可以考慮 self-hosted GitHub Actions runner（架在台灣的 VPS / Raspberry Pi）。
+
 ## 自選清單同步（PAT 流程）
 
 純看資料不需要 PAT。要新增 / 移除股票才需要：
@@ -111,7 +151,8 @@ python -m http.server 8000
 2. Resource owner 選自己；Repository access 只勾 `CoinMachine`
 3. Permissions → Contents: **Read and write**（其他保持 No access）
 4. 複製 token，到 `settings.html` 貼上
-5. 回主頁，新增 / 移除按鈕就會直接 commit `data/watchlist.json` → 觸發 `on-watchlist-change.yml` 補抓新代號
+5. 回主頁，新增 / 移除按鈕會 commit `data/watchlist.json` 進 repo
+6. 新代號的資料會在下次 23:30 排程跑批時被抓進來；想立刻看就在本地跑 `.\scripts\run_local.ps1`
 
 PAT 只存在你瀏覽器的 localStorage，沒有送任何伺服器。
 
