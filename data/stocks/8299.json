@@ -2,7 +2,7 @@
   "stock_id": "8299",
   "name": "群聯",
   "market": "TPEx",
-  "last_updated": "2026-05-17T14:55:27+08:00",
+  "last_updated": "2026-05-17T18:54:12+08:00",
   "last_trade_date": "2026-05-15",
   "rule_version": "v1.0.0",
   "inactive": false,
@@ -28,7 +28,7 @@
       "ma_spread_state": "向上發散",
       "macd_zone": "零軸之上 (多頭)",
       "macd_cross": null,
-      "macd_histogram": null,
+      "macd_histogram": "紅柱縮短",
       "macd_divergence": null
     },
     "alerts": [

@@ -2,7 +2,7 @@
   "stock_id": "2368",
   "name": "金像電",
   "market": "TWSE",
-  "last_updated": "2026-05-17T10:18:00+08:00",
+  "last_updated": "2026-05-17T18:54:12+08:00",
   "last_trade_date": "2026-05-15",
   "rule_version": "v1.0.0",
   "inactive": false,
@@ -28,7 +28,7 @@
       "ma_spread_state": "多頭發散",
       "macd_zone": "零軸之上 (多頭)",
       "macd_cross": null,
-      "macd_histogram": null,
+      "macd_histogram": "綠柱變長",
       "macd_divergence": null
     },
     "alerts": []

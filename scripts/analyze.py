@@ -100,31 +100,63 @@ def _macd_cross(today: pd.Series, yesterday: pd.Series) -> str | None:
 
 
 def _macd_histogram(osc_tail: pd.Series) -> str | None:
+    """Day-on-day comparison: every trading day has a state.
+
+    Red bar (OSC > 0): bullish momentum. Higher than yesterday = 變長, lower = 縮短.
+    Green bar (OSC < 0): bearish momentum. More negative than yesterday = 變長 (棒子更長),
+    less negative = 縮短.
+    Color flip (red↔green) gets its own label.
+    Bonus: 連 N 日 suffix when the same direction repeats for OSC_TREND_BARS or more.
+    """
     osc_tail = osc_tail.dropna()
-    if len(osc_tail) < OSC_TREND_BARS:
+    if len(osc_tail) < 2:
         return None
 
-    today_osc = osc_tail.iloc[-1]
-    last_n = osc_tail.iloc[-OSC_TREND_BARS:]
-    last_strong = osc_tail.iloc[-OSC_STRONG_BARS:] if len(osc_tail) >= OSC_STRONG_BARS else None
-    color = "紅柱" if today_osc > 0 else ("綠柱" if today_osc < 0 else None)
-    if color is None:
-        return None
+    today_osc = float(osc_tail.iloc[-1])
+    yest_osc = float(osc_tail.iloc[-2])
 
-    # Compare absolute magnitude for green bars (deeper = stronger)
-    series = last_n if today_osc > 0 else -last_n
-    increasing = series.is_monotonic_increasing and series.iloc[-1] > series.iloc[0]
-    decreasing = series.is_monotonic_decreasing and series.iloc[-1] < series.iloc[0]
+    if today_osc > 0:
+        color = "紅柱"
+        if yest_osc <= 0:
+            return f"{color}翻揚"  # green→red flip
+        base = f"{color}變長" if today_osc > yest_osc else (f"{color}縮短" if today_osc < yest_osc else f"{color}持平")
+    elif today_osc < 0:
+        color = "綠柱"
+        if yest_osc >= 0:
+            return f"{color}翻落"  # red→green flip
+        # More negative = bar grew taller
+        base = f"{color}變長" if today_osc < yest_osc else (f"{color}縮短" if today_osc > yest_osc else f"{color}持平")
+    else:
+        return None  # OSC exactly zero
 
-    if increasing:
-        if last_strong is not None:
-            strong_series = last_strong if today_osc > 0 else -last_strong
-            if strong_series.is_monotonic_increasing and strong_series.iloc[-1] > strong_series.iloc[0]:
-                return f"{color}強加速"
-        return f"{color}加速"
-    if decreasing:
-        return f"{color}減弱"
-    return None
+    # Bonus: count consecutive days of the same direction (variant of base)
+    streak = _direction_streak(osc_tail, base)
+    if streak >= OSC_STRONG_BARS:
+        return f"{base} (連{streak}日)"
+    if streak >= OSC_TREND_BARS:
+        return f"{base} (連{streak}日)"
+    return base
+
+
+def _direction_streak(osc_tail: pd.Series, base_state: str) -> int:
+    """Count how many consecutive recent days share today's same-color same-direction state."""
+    if len(osc_tail) < 2:
+        return 1
+    values = osc_tail.to_numpy()
+    streak = 1
+    for i in range(len(values) - 1, 0, -1):
+        today, yest = float(values[i]), float(values[i - 1])
+        same_color = (today > 0 and yest > 0) or (today < 0 and yest < 0)
+        if not same_color:
+            break
+        if today > 0:
+            day_state = "紅柱變長" if today > yest else ("紅柱縮短" if today < yest else "紅柱持平")
+        else:
+            day_state = "綠柱變長" if today < yest else ("綠柱縮短" if today > yest else "綠柱持平")
+        if day_state != base_state:
+            break
+        streak += 1
+    return streak
 
 
 def analyze(df: pd.DataFrame, divergence: Divergence | None) -> dict[str, Any]:
