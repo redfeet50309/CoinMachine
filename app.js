@@ -11,7 +11,15 @@ import { drawCharts, destroyCharts } from './chart.js';
 
 const POLL_MS = 30_000;
 
-window.app = () => ({
+// Register via alpine:init so Alpine waits for our ES module to finish loading
+// (otherwise Alpine boots on DOMContentLoaded before this module's imports
+// resolve, and x-data="app" finds nothing).
+document.addEventListener('alpine:init', () => {
+  window.Alpine.data('app', appComponent);
+});
+
+function appComponent() {
+  return ({
   watchlist: { stocks: [] },
   cards: [],         // [{ id, name, market, data }]
   meta: null,
@@ -145,4 +153,5 @@ window.app = () => ({
       this.busy = false;
     }
   },
-});
+  });
+}
