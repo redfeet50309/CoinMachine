@@ -1,61 +1,61 @@
 {
-  "generated_at": "2026-05-18T23:30:32+08:00",
+  "generated_at": "2026-05-19T23:30:32+08:00",
   "schema_version": 1,
   "stocks": [
     {
       "id": "8299",
       "name": "群聯",
       "market": "TPEx",
-      "updated": "2026-05-18",
+      "updated": "2026-05-19",
       "status": "ok"
     },
     {
       "id": "8039",
       "name": "台虹",
       "market": "TWSE",
-      "updated": "2026-05-18",
+      "updated": "2026-05-19",
       "status": "ok"
     },
     {
       "id": "2301",
       "name": "光寶科",
       "market": "TWSE",
-      "updated": "2026-05-18",
+      "updated": "2026-05-19",
       "status": "ok"
     },
     {
       "id": "2605",
       "name": "新興",
       "market": "TWSE",
-      "updated": "2026-05-18",
+      "updated": "2026-05-19",
       "status": "ok"
     },
     {
       "id": "3105",
       "name": "穩懋",
       "market": "TPEx",
-      "updated": "2026-05-18",
+      "updated": "2026-05-19",
       "status": "ok"
     },
     {
       "id": "3131",
       "name": "弘塑",
       "market": "TPEx",
-      "updated": "2026-05-18",
+      "updated": "2026-05-19",
       "status": "ok"
     },
     {
       "id": "2449",
       "name": "京元電",
       "market": "TWSE",
-      "updated": "2026-05-18",
+      "updated": "2026-05-19",
       "status": "ok"
     },
     {
       "id": "2368",
       "name": "金像電",
       "market": "TWSE",
-      "updated": "2026-05-18",
+      "updated": "2026-05-19",
       "status": "ok"
     }
   ]
