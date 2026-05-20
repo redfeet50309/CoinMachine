@@ -25,6 +25,8 @@ from config import (
     INDEX_FILE,
     META_FILE,
     REQUEST_DELAY_SEC,
+    RETRY_BACKOFF_SEC,
+    RETRY_MAX_PASSES,
     RULE_VERSION,
     SCHEMA_VERSION,
     STOCKS_DIR,
@@ -75,9 +77,14 @@ def _bars_to_df(bars: list[dict]) -> pd.DataFrame:
     return df[["date", "open", "high", "low", "close", "volume"]].sort_values("date").reset_index(drop=True)
 
 
-def _merge_bars(existing: list[dict], fresh: list[Bar]) -> list[dict]:
+def _merge_bars(existing: list[dict], fresh: list[Bar], prefer_existing: bool = False) -> list[dict]:
+    """Merge fresh bars into existing. fresh wins by default; flip
+    prefer_existing=True for retry passes that must not overwrite already-good
+    data with a fallback source (e.g. snapshot)."""
     by_date: dict[str, dict] = {b["date"]: b for b in existing}
     for b in fresh:
+        if prefer_existing and b.date in by_date:
+            continue
         by_date[b.date] = {
             "date": b.date, "o": b.open, "h": b.high, "l": b.low, "c": b.close, "v": b.volume
         }
@@ -98,6 +105,7 @@ def update_stock(
     twse_snapshot: dict[str, Bar] | None = None,
     use_twse_legacy: bool = False,
     force_full: bool = False,
+    prefer_existing: bool = False,
 ) -> dict[str, Any]:
     """Update one stock; return result summary for meta tracking.
 
@@ -142,7 +150,7 @@ def update_stock(
         if start <= end:
             fresh = fetch_history(stock_id, market, start, end)
 
-    merged = _merge_bars(existing_history, fresh)
+    merged = _merge_bars(existing_history, fresh, prefer_existing=prefer_existing)
     df_full = _bars_to_df(merged)
 
     if df_full.empty:
@@ -277,6 +285,39 @@ def _write_meta(duration: float, results: list[dict], failures: list[dict]) -> N
     )
 
 
+def _run_one_pass(
+    entries: list[dict],
+    twse_snapshot: dict[str, Bar],
+    use_twse_legacy: bool,
+    prefer_existing: bool = False,
+) -> tuple[list[dict], list[dict]]:
+    """Single sweep through entries. Returns (results, failures)."""
+    results: list[dict] = []
+    failures: list[dict] = []
+    for i, entry in enumerate(entries):
+        sid = entry["id"]
+        if i > 0:
+            # Sleep before any month-endpoint fetch (TPEx always, TWSE only if legacy alive)
+            if entry.get("market") != "TWSE" or use_twse_legacy:
+                time.sleep(REQUEST_DELAY_SEC)
+        try:
+            r = update_stock(
+                entry,
+                twse_snapshot=twse_snapshot,
+                use_twse_legacy=use_twse_legacy,
+                prefer_existing=prefer_existing,
+            )
+            log.info("ok %s %s (%s)", sid, r.get("market"), r.get("last_trade_date"))
+            results.append(r)
+        except FetchError as e:
+            log.error("fetch failed %s: %s", sid, e)
+            failures.append({"id": sid, "reason": str(e), "type": "fetch"})
+        except Exception as e:  # noqa: BLE001
+            log.error("unexpected failure %s: %s\n%s", sid, e, traceback.format_exc())
+            failures.append({"id": sid, "reason": str(e), "type": "exception"})
+    return results, failures
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     argv = argv or sys.argv[1:]
@@ -292,8 +333,6 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     started = time.time()
-    results: list[dict] = []
-    failures: list[dict] = []
 
     has_twse = any(e.get("market") == "TWSE" or e.get("market") is None for e in entries)
     use_twse_legacy = False
@@ -307,22 +346,36 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as e:  # noqa: BLE001
             log.error("twse snapshot failed: %s", e)
 
-    for i, entry in enumerate(entries):
-        sid = entry["id"]
-        # Delay between requests when we hit any month endpoint
-        if i > 0:
-            if entry.get("market") != "TWSE" or use_twse_legacy:
-                time.sleep(REQUEST_DELAY_SEC)
-        try:
-            r = update_stock(entry, twse_snapshot=twse_snapshot, use_twse_legacy=use_twse_legacy)
-            log.info("ok %s %s (%s)", sid, r.get("market"), r.get("last_trade_date"))
-            results.append(r)
-        except FetchError as e:
-            log.error("fetch failed %s: %s", sid, e)
-            failures.append({"id": sid, "reason": str(e), "type": "fetch"})
-        except Exception as e:  # noqa: BLE001
-            log.error("unexpected failure %s: %s\n%s", sid, e, traceback.format_exc())
-            failures.append({"id": sid, "reason": str(e), "type": "exception"})
+    results, failures = _run_one_pass(entries, twse_snapshot, use_twse_legacy, prefer_existing=False)
+    retry_attempts: dict[str, int] = {f["id"]: 0 for f in failures}
+
+    for attempt in range(1, RETRY_MAX_PASSES + 1):
+        if not failures:
+            break
+        log.info("retry pass %d: %d stocks (backing off %ds)", attempt, len(failures), RETRY_BACKOFF_SEC)
+        time.sleep(RETRY_BACKOFF_SEC)
+
+        # Refresh snapshot if first attempt failed entirely (still empty)
+        if has_twse and not twse_snapshot:
+            try:
+                twse_snapshot = fetch_twse_latest_all()
+                log.info("twse snapshot refresh: %d stocks", len(twse_snapshot))
+            except Exception as e:  # noqa: BLE001
+                log.error("twse snapshot refresh failed: %s", e)
+
+        retry_ids = {f["id"] for f in failures}
+        retry_entries = [e for e in entries if e["id"] in retry_ids]
+        retry_results, retry_failures = _run_one_pass(
+            retry_entries, twse_snapshot, use_twse_legacy, prefer_existing=True,
+        )
+        succeeded_ids = {r["id"] for r in retry_results if r.get("status") in ("ok", "no_data")}
+        results.extend(r for r in retry_results if r["id"] in succeeded_ids)
+        failures = retry_failures
+        for fid in {f["id"] for f in failures}:
+            retry_attempts[fid] = attempt
+
+    for f in failures:
+        f["retry_attempts"] = retry_attempts.get(f["id"], 0)
 
     _write_index(watchlist, results)
     _write_meta(time.time() - started, results, failures)

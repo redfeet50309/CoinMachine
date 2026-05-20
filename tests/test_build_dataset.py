@@ -136,6 +136,25 @@ def test_merge_bars_empty_fresh_returns_existing():
     assert out == existing
 
 
+def test_merge_bars_prefer_existing_skips_same_date():
+    existing = [{"date": "2026-03-02", "o": 1, "h": 1, "l": 1, "c": 50, "v": 100}]
+    fresh = [_b("2026-03-02", c=99.9)]
+    out = _merge_bars(existing, fresh, prefer_existing=True)
+    assert len(out) == 1
+    # existing wins → close stays 50
+    assert out[0]["c"] == 50
+
+
+def test_merge_bars_prefer_existing_still_adds_new_dates():
+    existing = [{"date": "2026-03-02", "o": 1, "h": 1, "l": 1, "c": 50, "v": 100}]
+    fresh = [_b("2026-03-02", c=99.9), _b("2026-03-03", c=60)]
+    out = _merge_bars(existing, fresh, prefer_existing=True)
+    assert [b["date"] for b in out] == ["2026-03-02", "2026-03-03"]
+    # 2026-03-02 kept existing close=50, 2026-03-03 added with close=60
+    assert out[0]["c"] == 50
+    assert out[1]["c"] == 60
+
+
 # ---------- _start_date ----------
 
 def test_start_date_empty_history_uses_warmup_window():
@@ -153,3 +172,45 @@ def test_start_date_from_existing_uses_last_plus_one_day():
     ]
     # last = 2026-04-15 → expected = 2026-04-16
     assert _start_date(existing) == date(2026, 4, 16)
+
+
+# ---------- _run_one_pass / retry loop (integration via monkeypatch) ----------
+
+def test_run_one_pass_collects_results_and_failures(monkeypatch):
+    import build_dataset
+    from fetch_twse import FetchError
+
+    call_count = {"n": 0}
+
+    def fake_update(entry, **kwargs):
+        call_count["n"] += 1
+        if entry["id"] == "FAIL":
+            raise FetchError("simulated fetch fail")
+        return {"id": entry["id"], "status": "ok", "market": "TWSE",
+                "last_trade_date": "2026-05-19"}
+
+    monkeypatch.setattr(build_dataset, "update_stock", fake_update)
+    monkeypatch.setattr(build_dataset, "time", type("T", (), {"sleep": lambda *a: None}))
+
+    entries = [{"id": "OK1", "market": "TPEx"}, {"id": "FAIL", "market": "TPEx"}]
+    results, failures = build_dataset._run_one_pass(entries, {}, False)
+    assert [r["id"] for r in results] == ["OK1"]
+    assert [f["id"] for f in failures] == ["FAIL"]
+    assert failures[0]["type"] == "fetch"
+    assert call_count["n"] == 2
+
+
+def test_run_one_pass_passes_prefer_existing_through(monkeypatch):
+    import build_dataset
+    received = {}
+
+    def fake_update(entry, **kwargs):
+        received["prefer_existing"] = kwargs.get("prefer_existing", False)
+        return {"id": entry["id"], "status": "ok", "market": "TWSE",
+                "last_trade_date": "2026-05-19"}
+
+    monkeypatch.setattr(build_dataset, "update_stock", fake_update)
+    monkeypatch.setattr(build_dataset, "time", type("T", (), {"sleep": lambda *a: None}))
+
+    build_dataset._run_one_pass([{"id": "X", "market": "TPEx"}], {}, False, prefer_existing=True)
+    assert received["prefer_existing"] is True

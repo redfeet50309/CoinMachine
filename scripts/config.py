@@ -45,6 +45,9 @@ RSI_BOUNCE_HIGH = 50           # short-entry RSI lower bound (50 <= rsi <= 70)
 
 WATCHLIST_MAX_STOCKS = 30      # frontend addStock guard; backend doesn't enforce
 
+RETRY_MAX_PASSES = 2           # build_dataset retries failures up to N extra passes
+RETRY_BACKOFF_SEC = 60
+
 # Thresholds (see plan: ma-macd-deep-duckling.md)
 MA_CLUSTER_PCT = 0.015        # 1.5%
 MA_CLUSTER_DAYS = 5

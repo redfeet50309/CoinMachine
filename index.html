@@ -152,7 +152,9 @@
     <summary>抓取失敗 (<span x-text="meta?.failures?.length"></span>)</summary>
     <ul>
       <template x-for="f in meta?.failures || []">
-        <li><strong x-text="f.id"></strong>: <span x-text="f.reason"></span></li>
+        <li><strong x-text="f.id"></strong>: <span x-text="f.reason"></span>
+          <em x-show="f.retry_attempts" x-text="'（已重試 ' + f.retry_attempts + ' 次）'"></em>
+        </li>
       </template>
     </ul>
   </details>
