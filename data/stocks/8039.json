@@ -2,40 +2,40 @@
   "stock_id": "8039",
   "name": "台虹",
   "market": "TWSE",
-  "last_updated": "2026-05-20T09:18:42+08:00",
-  "last_trade_date": "2026-05-19",
+  "last_updated": "2026-05-20T23:30:13+08:00",
+  "last_trade_date": "2026-05-20",
   "rule_version": "v1.0.0",
   "inactive": false,
   "latest": {
-    "close": 133.5,
-    "volume": 13373703,
+    "close": 126.5,
+    "volume": 9143802,
     "ma": {
-      "ma5": 141.1,
-      "ma10": 138.4,
-      "ma20": 139.925,
-      "ma60": 122.8433,
-      "ma120": 103.5933,
-      "ma240": 78.7713
+      "ma5": 138.8,
+      "ma10": 137.5,
+      "ma20": 138.925,
+      "ma60": 123.57,
+      "ma120": 104.0958,
+      "ma240": 79.1015
     },
     "macd": {
-      "dif": 2.9407,
-      "macd": 3.9349,
-      "osc": -0.9942
+      "dif": 1.7358,
+      "macd": 3.495,
+      "osc": -1.7593
     },
     "rsi": {
-      "value": 48.1707,
+      "value": 42.9927,
       "zone": "中性",
       "numbing": null,
       "divergence": null,
       "strategy": null
     },
     "signals": {
-      "ma_trend": "多頭排列",
-      "ma_cross": null,
-      "ma_spread_state": "向上發散",
+      "ma_trend": "盤整",
+      "ma_cross": "死亡交叉 (MA5 下穿 MA20)",
+      "ma_spread_state": "發散",
       "macd_zone": "零軸之上 (多頭)",
       "macd_cross": null,
-      "macd_histogram": "綠柱變長 (連3日)",
+      "macd_histogram": "綠柱變長 (連4日)",
       "macd_divergence": null,
       "rsi_zone": "中性",
       "rsi_numbing": null,
@@ -43,25 +43,10 @@
       "rsi_strategy": null
     },
     "alerts": [
-      "均線多頭向上發散"
+      "今日：MA 死亡交叉 (MA5 下穿 MA20)"
     ]
   },
   "history": [
-    {
-      "date": "2025-03-25",
-      "o": 48.95,
-      "h": 49.05,
-      "l": 47.8,
-      "c": 48.2,
-      "v": 1402098,
-      "ma5": null,
-      "ma20": null,
-      "ma60": null,
-      "dif": 0.0,
-      "macd": 0.0,
-      "osc": 0.0,
-      "rsi": null
-    },
     {
       "date": "2025-03-26",
       "o": 48.25,
@@ -4246,6 +4231,21 @@
       "macd": 3.9349,
       "osc": -0.9942,
       "rsi": 48.1707
+    },
+    {
+      "date": "2026-05-20",
+      "o": 133.5,
+      "h": 134.0,
+      "l": 125.5,
+      "c": 126.5,
+      "v": 9143802,
+      "ma5": 138.8,
+      "ma20": 138.925,
+      "ma60": 123.57,
+      "dif": 1.7358,
+      "macd": 3.495,
+      "osc": -1.7593,
+      "rsi": 42.9927
     }
   ]
 }
