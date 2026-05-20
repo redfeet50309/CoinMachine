@@ -152,11 +152,12 @@ def update_stock(
     days_since = (date.today() - date.fromisoformat(last_trade_date)).days
     inactive = days_since >= INACTIVE_AFTER_MISSING_DAYS * 2
 
-    from indicators import compute_indicators, detect_divergence
+    from indicators import compute_indicators, detect_divergence, detect_rsi_divergence
 
     df_ind = compute_indicators(df_full)
-    divergence = detect_divergence(df_ind)
-    result = analyze(df_ind, divergence)
+    macd_divergence = detect_divergence(df_ind)
+    rsi_divergence = detect_rsi_divergence(df_ind)
+    result = analyze(df_ind, macd_divergence, rsi_divergence)
 
     today = df_ind.iloc[-1]
     latest = {
@@ -167,6 +168,13 @@ def update_stock(
             "dif": _safe_float(today.get("dif")),
             "macd": _safe_float(today.get("macd")),
             "osc": _safe_float(today.get("osc")),
+        },
+        "rsi": {
+            "value": _safe_float(today.get("rsi")),
+            "zone": result["signals"].get("rsi_zone"),
+            "numbing": result["signals"].get("rsi_numbing"),
+            "divergence": result["signals"].get("rsi_divergence"),
+            "strategy": result["signals"].get("rsi_strategy"),
         },
         "signals": result["signals"],
         "alerts": result["alerts"],
@@ -187,6 +195,7 @@ def update_stock(
             "dif": _safe_float(row.get("dif")),
             "macd": _safe_float(row.get("macd")),
             "osc": _safe_float(row.get("osc")),
+            "rsi": _safe_float(row.get("rsi")),
         }
         for _, row in df_keep.iterrows()
     ]

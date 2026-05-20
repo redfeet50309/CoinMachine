@@ -14,6 +14,12 @@ from config import (
     MA_SPREAD_PCT,
     OSC_STRONG_BARS,
     OSC_TREND_BARS,
+    RSI_BOUNCE_HIGH,
+    RSI_NUMB_BARS,
+    RSI_NUMB_PRICE_LOOKBACK,
+    RSI_OVERBOUGHT,
+    RSI_OVERSOLD,
+    RSI_PULLBACK_LOW,
 )
 from indicators import Divergence
 
@@ -159,10 +165,87 @@ def _direction_streak(osc_tail: pd.Series, base_state: str) -> int:
     return streak
 
 
-def analyze(df: pd.DataFrame, divergence: Divergence | None) -> dict[str, Any]:
+def _rsi_zone(today: pd.Series) -> str:
+    rsi = today.get("rsi")
+    if rsi is None or pd.isna(rsi):
+        return "資料不足"
+    if rsi > RSI_OVERBOUGHT:
+        return f"超買 (>{RSI_OVERBOUGHT})"
+    if rsi < RSI_OVERSOLD:
+        return f"超賣 (<{RSI_OVERSOLD})"
+    return "中性"
+
+
+def _rsi_numbing(df: pd.DataFrame) -> str | None:
+    """High/low-zone numbing: RSI stays in OB/OS zone for >=N bars while close
+    keeps making new highs/lows over a wider lookback window."""
+    needed = max(RSI_NUMB_BARS, RSI_NUMB_PRICE_LOOKBACK)
+    if len(df) < needed:
+        return None
+    last_rsi = df["rsi"].iloc[-RSI_NUMB_BARS:]
+    last_close = df["close"].iloc[-RSI_NUMB_PRICE_LOOKBACK:]
+    if last_rsi.isna().any() or last_close.isna().any():
+        return None
+    today_close = float(last_close.iloc[-1])
+
+    if (last_rsi > RSI_OVERBOUGHT).all() and today_close >= float(last_close.max()):
+        return "高檔鈍化"
+    if (last_rsi < RSI_OVERSOLD).all() and today_close <= float(last_close.min()):
+        return "低檔鈍化"
+    return None
+
+
+def _rsi_reversal_strategy(df: pd.DataFrame, signals: dict[str, Any]) -> str | None:
+    """Composite signal fired only on transition day (matches ma_cross style).
+
+    Long  : yesterday RSI < OVERSOLD; today RSI ∈ [OVERSOLD, PULLBACK_LOW];
+            MACD in bullish zone OR golden cross; close > MA20.
+    Short : yesterday RSI > OVERBOUGHT; today RSI ∈ [BOUNCE_HIGH, OVERBOUGHT];
+            MACD in bearish zone OR death cross; close < MA20.
+    """
+    if len(df) < 2:
+        return None
+    today = df.iloc[-1]
+    yesterday = df.iloc[-2]
+
+    t_rsi, y_rsi = today.get("rsi"), yesterday.get("rsi")
+    close, ma20 = today.get("close"), today.get("ma20")
+    if any(pd.isna(x) for x in (t_rsi, y_rsi, close, ma20)):
+        return None
+
+    macd_zone = signals.get("macd_zone") or ""
+    macd_cross = signals.get("macd_cross") or ""
+
+    long_macd_ok = "多頭" in macd_zone or "黃金" in macd_cross
+    short_macd_ok = "空頭" in macd_zone or "死亡" in macd_cross
+
+    long_transition = y_rsi < RSI_OVERSOLD and RSI_OVERSOLD <= t_rsi <= RSI_PULLBACK_LOW
+    short_transition = y_rsi > RSI_OVERBOUGHT and RSI_BOUNCE_HIGH <= t_rsi <= RSI_OVERBOUGHT
+
+    if long_transition and long_macd_ok and close > ma20:
+        return "做多訊號 (RSI 自超賣反彈)"
+    if short_transition and short_macd_ok and close < ma20:
+        return "做空訊號 (RSI 自超買回檔)"
+    return None
+
+
+def _divergence_label(div: Divergence | None, df: pd.DataFrame) -> str | None:
+    if not div:
+        return None
+    is_today = div.curr_idx == len(df.tail(60)) - 1
+    if is_today:
+        return "頂背離" if div.kind == "top" else "底背離"
+    return "近期頂背離" if div.kind == "top" else "近期底背離"
+
+
+def analyze(
+    df: pd.DataFrame,
+    macd_divergence: Divergence | None,
+    rsi_divergence: Divergence | None = None,
+) -> dict[str, Any]:
     """Return latest signals dict + alerts list.
 
-    df must be sorted by date and contain MA/MACD columns from indicators.compute_indicators.
+    df must be sorted by date and contain MA/MACD/RSI columns from indicators.compute_indicators.
     """
     if df.empty:
         return {"signals": {}, "alerts": []}
@@ -178,23 +261,20 @@ def analyze(df: pd.DataFrame, divergence: Divergence | None) -> dict[str, Any]:
 
     close = today.get("close")
 
-    signals = {
+    signals: dict[str, Any] = {
         "ma_trend": _ma_trend(today),
         "ma_cross": _ma_cross(today, yesterday, trend_anchor) if trend_anchor is not None else None,
         "ma_spread_state": _spread_state(today, prev_slope, close),
         "macd_zone": _macd_zone(today),
         "macd_cross": _macd_cross(today, yesterday),
         "macd_histogram": _macd_histogram(df["osc"]),
-        "macd_divergence": None,
+        "macd_divergence": _divergence_label(macd_divergence, df),
+        "rsi_zone": _rsi_zone(today),
+        "rsi_numbing": _rsi_numbing(df),
+        "rsi_divergence": _divergence_label(rsi_divergence, df),
+        "rsi_strategy": None,  # filled below — depends on macd_zone/macd_cross
     }
-
-    if divergence and divergence.curr_idx == len(df.tail(60)) - 1:
-        signals["macd_divergence"] = "頂背離" if divergence.kind == "top" else "底背離"
-    elif divergence:
-        # Persisting divergence (recent but not today)
-        signals["macd_divergence"] = (
-            "近期頂背離" if divergence.kind == "top" else "近期底背離"
-        )
+    signals["rsi_strategy"] = _rsi_reversal_strategy(df, signals)
 
     alerts: list[str] = []
     if signals["ma_cross"]:
@@ -207,5 +287,11 @@ def analyze(df: pd.DataFrame, divergence: Divergence | None) -> dict[str, Any]:
         alerts.append("均線多頭向上發散")
     if signals["ma_trend"] == "空頭排列" and signals["ma_spread_state"] == "向下發散":
         alerts.append("均線空頭向下發散")
+    if signals["rsi_divergence"] and not signals["rsi_divergence"].startswith("近期"):
+        alerts.append(f"今日：RSI {signals['rsi_divergence']}")
+    if signals["rsi_numbing"]:
+        alerts.append(f"RSI {signals['rsi_numbing']} (強勢可改用 80/20)")
+    if signals["rsi_strategy"]:
+        alerts.append(f"今日：{signals['rsi_strategy']}")
 
     return {"signals": signals, "alerts": alerts}

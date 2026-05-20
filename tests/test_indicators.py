@@ -9,7 +9,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-from indicators import compute_indicators, detect_divergence  # noqa: E402
+from indicators import (  # noqa: E402
+    compute_indicators,
+    compute_rsi,
+    detect_divergence,
+    detect_rsi_divergence,
+)
 
 
 def _df(close: list[float]) -> pd.DataFrame:
@@ -117,3 +122,71 @@ def test_safe_for_small_lookback():
     out = compute_indicators(df)
     assert len(out) == 2
     assert pd.isna(out["ma5"].iloc[-1])
+
+
+# ---------- RSI ----------
+
+def test_rsi_warmup_first_14_are_nan():
+    closes = list(range(1, 31))
+    df = _df([float(c) for c in closes])
+    out = compute_indicators(df)
+    # First 14 values NaN, index 14 onwards has values
+    assert pd.isna(out["rsi"].iloc[13])
+    assert not pd.isna(out["rsi"].iloc[14])
+
+
+def test_rsi_pure_uptrend_is_100():
+    closes = [float(c) for c in range(1, 50)]
+    rsi = compute_rsi(pd.Series(closes), period=14)
+    # After warmup, strict uptrend → loss=0 → RSI=100
+    assert rsi.iloc[-1] == pytest.approx(100.0)
+
+
+def test_rsi_pure_downtrend_is_0():
+    closes = [float(c) for c in range(50, 0, -1)]
+    rsi = compute_rsi(pd.Series(closes), period=14)
+    assert rsi.iloc[-1] == pytest.approx(0.0)
+
+
+def test_rsi_flat_market_is_nan():
+    rsi = compute_rsi(pd.Series([100.0] * 30), period=14)
+    # No gains, no losses → 0/0 → NaN (no momentum signal possible)
+    assert pd.isna(rsi.iloc[-1])
+
+
+def test_rsi_neutral_zigzag_near_50():
+    # Equal-magnitude up/down moves → avg_gain ≈ avg_loss → RSI ≈ 50
+    closes = [100.0]
+    for i in range(40):
+        closes.append(closes[-1] + (1.0 if i % 2 == 0 else -1.0))
+    rsi = compute_rsi(pd.Series(closes), period=14)
+    assert rsi.iloc[-1] == pytest.approx(50.0, abs=5.0)
+
+
+def test_rsi_column_added_by_compute_indicators():
+    df = _df([float(c) for c in range(1, 50)])
+    out = compute_indicators(df)
+    assert "rsi" in out.columns
+    assert 0 <= out["rsi"].iloc[-1] <= 100
+
+
+def test_detect_rsi_divergence_returns_none_when_insufficient():
+    df = _df([float(c) for c in range(1, 30)])
+    out = compute_indicators(df)
+    assert detect_rsi_divergence(out) is None
+
+
+def test_detect_rsi_divergence_runs_on_realistic_series():
+    """Smoke test — verify pipeline doesn't crash on a series that may or may
+    not contain a divergence."""
+    closes = []
+    for i in range(80):
+        # Two rising peaks
+        base = 100 + i * 0.4 + np.sin(i * 0.4) * 3
+        closes.append(base)
+    df = _df(closes)
+    out = compute_indicators(df)
+    result = detect_rsi_divergence(out)
+    assert result is None or result.kind in ("top", "bottom")
+    if result:
+        assert result.source == "rsi"

@@ -25,6 +25,7 @@ from config import (
     MA_PERIODS,
     MACD_SIGNAL,
     PEAK_PROMINENCE_PCT,
+    RSI_PERIOD,
 )
 
 
@@ -35,8 +36,9 @@ class Divergence:
     curr_idx: int
     price_prev: float
     price_curr: float
-    dif_prev: float
-    dif_curr: float
+    indicator_prev: float
+    indicator_curr: float
+    source: Literal["macd", "rsi"] = "macd"
 
 
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
@@ -53,32 +55,74 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     out["macd"] = out["dif"].ewm(span=MACD_SIGNAL, adjust=False).mean()
     out["osc"] = out["dif"] - out["macd"]
 
+    out["rsi"] = compute_rsi(close, period=RSI_PERIOD)
+
     return out
 
 
+def compute_rsi(close: pd.Series, period: int = 14) -> pd.Series:
+    """Wilder's RSI. Uses ewm(alpha=1/period, adjust=False) to match the
+    common Taiwan brokerage convention; first `period` values are NaN.
+
+    Constant input (no price movement) yields NaN (0/0). Pure uptrend yields
+    100 (loss = 0); pure downtrend yields 0 (gain = 0).
+    """
+    delta = close.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+
+    avg_gain = gain.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
+    avg_loss = loss.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+    # avg_loss == 0 → rs = inf → rsi = 100 (correct for pure uptrend)
+    # avg_gain == avg_loss == 0 → rs = NaN → rsi stays NaN (flat market)
+    rsi = rsi.where(avg_loss != 0, 100.0)
+    rsi = rsi.where(~((avg_gain == 0) & (avg_loss == 0)), np.nan)
+    return rsi
+
+
 def detect_divergence(df: pd.DataFrame) -> Divergence | None:
-    """Look at the last DIVERGENCE_LOOKBACK bars; return latest top or bottom
-    divergence between the two most recent confirmed price peaks (or valleys)."""
+    """Look at the last DIVERGENCE_LOOKBACK bars; return latest MACD top or
+    bottom divergence between the two most recent confirmed price peaks
+    (or valleys)."""
+    return _detect_divergence_for(df, "dif", source="macd")
+
+
+def detect_rsi_divergence(df: pd.DataFrame) -> Divergence | None:
+    """RSI variant of detect_divergence — same peak/valley logic on the
+    `rsi` column instead of `dif`."""
+    return _detect_divergence_for(df, "rsi", source="rsi")
+
+
+def _detect_divergence_for(
+    df: pd.DataFrame, indicator_col: str, source: str
+) -> Divergence | None:
     if len(df) < DIVERGENCE_LOOKBACK:
         return None
-
     window = df.tail(DIVERGENCE_LOOKBACK).reset_index(drop=True)
     close = window["close"].to_numpy()
-    dif = window["dif"].to_numpy()
-    if np.isnan(dif).any():
+    indicator = window[indicator_col].to_numpy()
+    if np.isnan(indicator).any():
         return None
 
     avg_close = float(np.nanmean(close))
     prom = avg_close * PEAK_PROMINENCE_PCT
 
-    top = _check_divergence(close, dif, prom, kind="top")
+    top = _check_divergence(close, indicator, prom, kind="top", source=source)
     if top is not None:
         return top
-    return _check_divergence(close, dif, prom, kind="bottom")
+    return _check_divergence(close, indicator, prom, kind="bottom", source=source)
 
 
 def _check_divergence(
-    close: np.ndarray, dif: np.ndarray, prominence: float, kind: str
+    close: np.ndarray,
+    indicator: np.ndarray,
+    prominence: float,
+    kind: str,
+    source: str = "macd",
 ) -> Divergence | None:
     series = close if kind == "top" else -close
     peaks, _ = find_peaks(series, prominence=prominence, distance=DIVERGENCE_MIN_PEAK_GAP)
@@ -87,14 +131,16 @@ def _check_divergence(
     prev_idx, curr_idx = int(peaks[-2]), int(peaks[-1])
 
     price_prev, price_curr = float(close[prev_idx]), float(close[curr_idx])
-    dif_prev, dif_curr = float(dif[prev_idx]), float(dif[curr_idx])
+    ind_prev, ind_curr = float(indicator[prev_idx]), float(indicator[curr_idx])
 
     if kind == "top":
-        # 頂背離：價創新高 (>=2%) but DIF lower
-        if price_curr >= price_prev * (1 + DIVERGENCE_PRICE_PCT) and dif_curr < dif_prev:
-            return Divergence("top", prev_idx, curr_idx, price_prev, price_curr, dif_prev, dif_curr)
+        # 頂背離：價創新高 (>=2%) but indicator lower
+        if price_curr >= price_prev * (1 + DIVERGENCE_PRICE_PCT) and ind_curr < ind_prev:
+            return Divergence("top", prev_idx, curr_idx,
+                              price_prev, price_curr, ind_prev, ind_curr, source)
     else:
-        # 底背離：價創新低 (>=2%) but DIF higher
-        if price_curr <= price_prev * (1 - DIVERGENCE_PRICE_PCT) and dif_curr > dif_prev:
-            return Divergence("bottom", prev_idx, curr_idx, price_prev, price_curr, dif_prev, dif_curr)
+        # 底背離：價創新低 (>=2%) but indicator higher
+        if price_curr <= price_prev * (1 - DIVERGENCE_PRICE_PCT) and ind_curr > ind_prev:
+            return Divergence("bottom", prev_idx, curr_idx,
+                              price_prev, price_curr, ind_prev, ind_curr, source)
     return None

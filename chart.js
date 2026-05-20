@@ -2,12 +2,13 @@
 // Exposed via window.ChartLib for non-module load order.
 
 window.ChartLib = (function () {
-  const charts = new Map(); // id -> { priceChart, macdChart, resize }
+  const charts = new Map(); // id -> { priceChart, macdChart, rsiChart, resize }
 
   function drawCharts(stockId, history) {
     destroyCharts(stockId);
     const priceEl = document.getElementById(`chart-price-${stockId}`);
     const macdEl = document.getElementById(`chart-macd-${stockId}`);
+    const rsiEl = document.getElementById(`chart-rsi-${stockId}`);
     if (!priceEl || !macdEl) return;
 
     const recent = history.slice(-90);
@@ -78,19 +79,49 @@ window.ChartLib = (function () {
 
     macdChart.timeScale().fitContent();
 
+    let rsiChart = null;
+    if (rsiEl) {
+      rsiChart = LightweightCharts.createChart(rsiEl, {
+        ...baseOptions,
+        height: 160,
+      });
+      const rsiLine = rsiChart.addLineSeries({
+        color: '#42a5f5', lineWidth: 1, title: 'RSI(14)',
+      });
+      rsiLine.setData(recent.filter(d => d.rsi != null).map(d => ({
+        time: d.date, value: d.rsi,
+      })));
+      // 70 / 30 reference lines
+      rsiLine.createPriceLine({
+        price: 70, color: '#e34d4d', lineWidth: 1, lineStyle: 2,
+        axisLabelVisible: true, title: '70',
+      });
+      rsiLine.createPriceLine({
+        price: 30, color: '#26a69a', lineWidth: 1, lineStyle: 2,
+        axisLabelVisible: true, title: '30',
+      });
+      rsiChart.timeScale().fitContent();
+    }
+
     const syncTimes = (src, dst) => src.timeScale().subscribeVisibleLogicalRangeChange(r => {
       if (r) dst.timeScale().setVisibleLogicalRange(r);
     });
     syncTimes(priceChart, macdChart);
     syncTimes(macdChart, priceChart);
+    if (rsiChart) {
+      syncTimes(priceChart, rsiChart);
+      syncTimes(rsiChart, priceChart);
+      syncTimes(macdChart, rsiChart);
+    }
 
     const resize = () => {
       priceChart.applyOptions({ width: priceEl.clientWidth });
       macdChart.applyOptions({ width: macdEl.clientWidth });
+      if (rsiChart && rsiEl) rsiChart.applyOptions({ width: rsiEl.clientWidth });
     };
     window.addEventListener('resize', resize);
 
-    charts.set(stockId, { priceChart, macdChart, resize });
+    charts.set(stockId, { priceChart, macdChart, rsiChart, resize });
   }
 
   function destroyCharts(stockId) {
@@ -100,6 +131,7 @@ window.ChartLib = (function () {
     try {
       entry.priceChart.remove();
       entry.macdChart.remove();
+      if (entry.rsiChart) entry.rsiChart.remove();
     } catch {}
     charts.delete(stockId);
   }

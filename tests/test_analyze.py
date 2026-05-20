@@ -352,7 +352,7 @@ def test_analyze_divergence_today_alert():
     div = Divergence(
         kind="top", prev_idx=10, curr_idx=59,
         price_prev=100.0, price_curr=105.0,
-        dif_prev=2.0, dif_curr=1.0,
+        indicator_prev=2.0, indicator_curr=1.0,
     )
     out = analyze(df, div)
     assert out["signals"]["macd_divergence"] == "頂背離"
@@ -372,7 +372,7 @@ def test_analyze_divergence_recent_does_not_alert():
     div = Divergence(
         kind="bottom", prev_idx=5, curr_idx=40,
         price_prev=100.0, price_curr=95.0,
-        dif_prev=-2.0, dif_curr=-1.0,
+        indicator_prev=-2.0, indicator_curr=-1.0,
     )
     out = analyze(df, div)
     assert out["signals"]["macd_divergence"] == "近期底背離"

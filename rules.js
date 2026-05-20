@@ -10,8 +10,10 @@ window.Rules = (function () {
   }
 
   function zoneClass(s) {
-    if (s?.includes('多頭')) return 'bull';
-    if (s?.includes('空頭')) return 'bear';
+    // 台股配色：紅 = 多 (bull)、綠 = 空 (bear)
+    // RSI: 超賣 = 反彈機會 → bull 色；超買 = 回檔風險 → bear 色
+    if (s?.includes('多頭') || s?.includes('超賣') || s?.includes('做多')) return 'bull';
+    if (s?.includes('空頭') || s?.includes('超買') || s?.includes('做空')) return 'bear';
     return 'neutral';
   }
 
