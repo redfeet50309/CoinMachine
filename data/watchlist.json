@@ -48,6 +48,12 @@
       "name": "金像電",
       "market": "TWSE",
       "added_at": "2026-05-17"
+    },
+    {
+      "id": "3236",
+      "name": "3236",
+      "market": null,
+      "added_at": "2026-05-20"
     }
   ]
 }
