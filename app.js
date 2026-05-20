@@ -91,6 +91,12 @@
           this.error = '股票代號應為 4-6 位數字 (如 2330)';
           return;
         }
+        const MAX_STOCKS = 30;
+        const currentCount = (this.watchlist.stocks || []).length;
+        if (currentCount >= MAX_STOCKS) {
+          this.error = `自選清單已達上限 ${MAX_STOCKS} 檔（目前 ${currentCount}）`;
+          return;
+        }
         if (this.watchlist.stocks?.some(s => s.id === id)) {
           this.error = `${id} 已在追蹤清單`;
           return;

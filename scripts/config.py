@@ -43,6 +43,8 @@ RSI_NUMB_PRICE_LOOKBACK = 5    # close must be new high/low across this window
 RSI_PULLBACK_LOW = 50          # long-entry RSI upper bound (30 <= rsi <= 50)
 RSI_BOUNCE_HIGH = 50           # short-entry RSI lower bound (50 <= rsi <= 70)
 
+WATCHLIST_MAX_STOCKS = 30      # frontend addStock guard; backend doesn't enforce
+
 # Thresholds (see plan: ma-macd-deep-duckling.md)
 MA_CLUSTER_PCT = 0.015        # 1.5%
 MA_CLUSTER_DAYS = 5
