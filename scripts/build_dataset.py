@@ -33,7 +33,7 @@ from config import (
     WARMUP_MONTHS,
     WATCHLIST_FILE,
 )
-from fetch_twse import Bar, FetchError, detect_market, fetch_history, fetch_twse_latest_all, is_twse_legacy_alive
+from fetch_twse import Bar, FetchError, detect_market, fetch_history, fetch_month, fetch_twse_latest_all, is_twse_legacy_alive
 
 log = logging.getLogger(__name__)
 TAIPEI_TZ = timezone(timedelta(hours=8))
@@ -100,6 +100,20 @@ def _start_date(existing: list[dict]) -> date:
     return (today - relativedelta(months=WARMUP_MONTHS)).replace(day=1)
 
 
+def _pick_best_name(
+    fresh: list[Bar], existing_json: dict | None, entry: dict, stock_id: str
+) -> str:
+    """Prefer fresh (just-fetched) name > existing JSON name > entry name > id.
+    Skip any candidate that is empty or equal to the stock id (placeholder)."""
+    fresh_name = next((b.name for b in fresh if b.name), "")
+    existing_name = (existing_json or {}).get("name", "") or ""
+    entry_name = entry.get("name", "") or ""
+    for candidate in (fresh_name, existing_name, entry_name):
+        if candidate and candidate != stock_id:
+            return candidate
+    return stock_id
+
+
 def update_stock(
     entry: dict,
     twse_snapshot: dict[str, Bar] | None = None,
@@ -115,7 +129,6 @@ def update_stock(
     TPEx always uses per-stock month fetch (its endpoint is stable).
     """
     stock_id = entry["id"]
-    name = entry.get("name", stock_id)
     market = entry.get("market")
 
     existing_history, existing_json = _existing_bars(stock_id)
@@ -150,11 +163,27 @@ def update_stock(
         if start <= end:
             fresh = fetch_history(stock_id, market, start, end)
 
+    resolved_name = _pick_best_name(fresh, existing_json, entry, stock_id)
+    if resolved_name == stock_id and market is not None:
+        # Fresh fetches got filtered out by date window (common when the stock
+        # was added today and there's nothing new to merge). Do a cheap probe
+        # on the current month just to harvest the company name. This adds one
+        # API call only for stocks where we still don't know the name.
+        today_d = date.today()
+        try:
+            probe_bars = fetch_month(stock_id, market, today_d.year, today_d.month)
+            for b in probe_bars:
+                if b.name:
+                    resolved_name = b.name
+                    break
+        except Exception:  # noqa: BLE001  best-effort, name is non-critical
+            log.warning("name probe failed for %s", stock_id)
+
     merged = _merge_bars(existing_history, fresh, prefer_existing=prefer_existing)
     df_full = _bars_to_df(merged)
 
     if df_full.empty:
-        return {"id": stock_id, "status": "no_data", "market": market}
+        return {"id": stock_id, "status": "no_data", "market": market, "name": resolved_name}
 
     last_trade_date = df_full["date"].max()
     days_since = (date.today() - date.fromisoformat(last_trade_date)).days
@@ -210,7 +239,7 @@ def update_stock(
 
     payload = {
         "stock_id": stock_id,
-        "name": name,
+        "name": resolved_name,
         "market": market,
         "last_updated": datetime.now(TAIPEI_TZ).isoformat(timespec="seconds"),
         "last_trade_date": last_trade_date,
@@ -221,7 +250,13 @@ def update_stock(
     }
 
     _write_json(STOCKS_DIR / f"{stock_id}.json", payload)
-    return {"id": stock_id, "status": "ok", "market": market, "last_trade_date": last_trade_date}
+    return {
+        "id": stock_id,
+        "status": "ok",
+        "market": market,
+        "name": resolved_name,
+        "last_trade_date": last_trade_date,
+    }
 
 
 def _safe_float(v) -> float | None:
@@ -244,6 +279,30 @@ def _safe_int(v) -> int | None:
     except (TypeError, ValueError):
         return None
     return iv
+
+
+def _backfill_watchlist(watchlist: dict, results: list[dict]) -> bool:
+    """Update watchlist entries with resolved name/market from results.
+
+    Mutates `watchlist` in place. Returns True if anything changed (so caller
+    knows to write it back). Skips entries with no matching result, and does
+    not overwrite a real name with an id-as-placeholder.
+    """
+    by_id = {r["id"]: r for r in results}
+    changed = False
+    for entry in watchlist.get("stocks", []):
+        r = by_id.get(entry["id"])
+        if not r:
+            continue
+        new_name = r.get("name")
+        new_market = r.get("market")
+        if new_name and new_name != entry["id"] and new_name != entry.get("name"):
+            entry["name"] = new_name
+            changed = True
+        if new_market and new_market != entry.get("market"):
+            entry["market"] = new_market
+            changed = True
+    return changed
 
 
 def _write_index(watchlist: dict, results: list[dict]) -> None:
@@ -376,6 +435,10 @@ def main(argv: list[str] | None = None) -> int:
 
     for f in failures:
         f["retry_attempts"] = retry_attempts.get(f["id"], 0)
+
+    if _backfill_watchlist(watchlist, results):
+        _write_json(WATCHLIST_FILE, watchlist)
+        log.info("watchlist backfilled (name/market)")
 
     _write_index(watchlist, results)
     _write_meta(time.time() - started, results, failures)

@@ -54,6 +54,7 @@ class Bar:
     low: float
     close: float
     volume: int      # shares
+    name: str = ""   # Chinese company name; empty when parser couldn't extract it
 
 
 class FetchError(Exception):
@@ -115,6 +116,7 @@ def _get_json(url: str, params: dict) -> dict:
 def _parse_twse(payload: dict) -> list[Bar]:
     if (payload.get("stat") or "").upper() != "OK":
         return []
+    name = _extract_twse_title_name(payload.get("title", ""))
     rows = payload.get("data") or []
     bars: list[Bar] = []
     for r in rows:
@@ -127,11 +129,21 @@ def _parse_twse(payload: dict) -> list[Bar]:
                     high=_to_float(r[4]),
                     low=_to_float(r[5]),
                     close=_to_float(r[6]),
+                    name=name,
                 )
             )
         except (IndexError, ValueError) as e:
             log.warning("twse parse row failed: %s (%s)", r, e)
     return bars
+
+
+def _extract_twse_title_name(title: str) -> str:
+    """TWSE legacy title format: "115年03月 2330 台積電 各日成交資訊".
+    Returns the company name (3rd token) or empty string if format unexpected."""
+    parts = (title or "").split()
+    if len(parts) < 3:
+        return ""
+    return parts[2]
 
 
 def _parse_tpex(payload: dict) -> list[Bar]:
@@ -141,6 +153,7 @@ def _parse_tpex(payload: dict) -> list[Bar]:
     tables = payload.get("tables") or []
     if not tables:
         return []
+    name = payload.get("name", "") or ""
     rows = tables[0].get("data") or []
     bars: list[Bar] = []
     for r in rows:
@@ -154,6 +167,7 @@ def _parse_tpex(payload: dict) -> list[Bar]:
                     high=_to_float(r[4]),
                     low=_to_float(r[5]),
                     close=_to_float(r[6]),
+                    name=name,
                 )
             )
         except (IndexError, ValueError) as e:
@@ -200,6 +214,7 @@ def fetch_twse_latest_all() -> dict[str, Bar]:
                 low=_to_float(row.get("LowestPrice", "")),
                 close=_to_float(row.get("ClosingPrice", "")),
                 volume=_to_int(row.get("TradeVolume", "0")),
+                name=row.get("Name", "") or "",
             )
         except (ValueError, TypeError, KeyError) as e:
             log.warning("twse openapi row parse failed: %s (%s)", row, e)

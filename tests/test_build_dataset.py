@@ -16,8 +16,10 @@ from dateutil.relativedelta import relativedelta
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from build_dataset import (  # noqa: E402
+    _backfill_watchlist,
     _bars_to_df,
     _merge_bars,
+    _pick_best_name,
     _safe_float,
     _safe_int,
     _start_date,
@@ -214,3 +216,103 @@ def test_run_one_pass_passes_prefer_existing_through(monkeypatch):
 
     build_dataset._run_one_pass([{"id": "X", "market": "TPEx"}], {}, False, prefer_existing=True)
     assert received["prefer_existing"] is True
+
+
+# ---------- _pick_best_name ----------
+
+def _named_bar(name):
+    return Bar(date="2026-05-20", open=1, high=1, low=1, close=1, volume=1, name=name)
+
+
+def test_pick_best_name_prefers_fresh_over_existing():
+    fresh = [_named_bar("台積電")]
+    existing = {"name": "OLD-NAME"}
+    entry = {"name": "3236"}
+    assert _pick_best_name(fresh, existing, entry, "3236") == "台積電"
+
+
+def test_pick_best_name_falls_back_to_existing_when_fresh_empty():
+    fresh = [_named_bar("")]  # parser couldn't extract
+    existing = {"name": "卡訊"}
+    entry = {"name": "3236"}
+    assert _pick_best_name(fresh, existing, entry, "3236") == "卡訊"
+
+
+def test_pick_best_name_falls_back_to_entry_when_existing_is_id():
+    # Existing JSON also has placeholder; entry has real name (rare path)
+    fresh = []
+    existing = {"name": "3236"}  # placeholder, equal to id
+    entry = {"name": "卡訊"}
+    assert _pick_best_name(fresh, existing, entry, "3236") == "卡訊"
+
+
+def test_pick_best_name_returns_id_when_all_placeholders():
+    fresh = [_named_bar("")]
+    existing = {"name": "3236"}
+    entry = {"name": "3236"}
+    assert _pick_best_name(fresh, existing, entry, "3236") == "3236"
+
+
+def test_pick_best_name_handles_none_existing():
+    fresh = [_named_bar("華立")]
+    assert _pick_best_name(fresh, None, {"name": "3236"}, "3236") == "華立"
+
+
+def test_pick_best_name_skips_bars_with_empty_name():
+    fresh = [_named_bar(""), _named_bar(""), _named_bar("群聯")]
+    assert _pick_best_name(fresh, None, {"name": "8299"}, "8299") == "群聯"
+
+
+# ---------- _backfill_watchlist ----------
+
+def test_backfill_watchlist_updates_name_and_market():
+    watchlist = {"stocks": [
+        {"id": "3236", "name": "3236", "market": None},
+    ]}
+    results = [{"id": "3236", "status": "ok", "name": "卡訊", "market": "TPEx"}]
+    changed = _backfill_watchlist(watchlist, results)
+    assert changed is True
+    assert watchlist["stocks"][0]["name"] == "卡訊"
+    assert watchlist["stocks"][0]["market"] == "TPEx"
+
+
+def test_backfill_watchlist_no_change_when_already_correct():
+    watchlist = {"stocks": [
+        {"id": "8299", "name": "群聯", "market": "TPEx"},
+    ]}
+    results = [{"id": "8299", "status": "ok", "name": "群聯", "market": "TPEx"}]
+    assert _backfill_watchlist(watchlist, results) is False
+    assert watchlist["stocks"][0]["name"] == "群聯"
+
+
+def test_backfill_watchlist_skips_entries_without_result():
+    watchlist = {"stocks": [
+        {"id": "3236", "name": "3236", "market": None},
+        {"id": "9999", "name": "9999", "market": None},
+    ]}
+    results = [{"id": "3236", "status": "ok", "name": "卡訊", "market": "TPEx"}]
+    assert _backfill_watchlist(watchlist, results) is True
+    assert watchlist["stocks"][0]["name"] == "卡訊"
+    # 9999 has no result, stays placeholder
+    assert watchlist["stocks"][1]["name"] == "9999"
+    assert watchlist["stocks"][1]["market"] is None
+
+
+def test_backfill_watchlist_does_not_overwrite_real_with_id():
+    # If results.name happens to equal id (placeholder leaked through), do NOT
+    # clobber a real name already in watchlist
+    watchlist = {"stocks": [
+        {"id": "8299", "name": "群聯", "market": "TPEx"},
+    ]}
+    results = [{"id": "8299", "status": "ok", "name": "8299", "market": "TPEx"}]
+    assert _backfill_watchlist(watchlist, results) is False
+    assert watchlist["stocks"][0]["name"] == "群聯"
+
+
+def test_backfill_watchlist_updates_only_market_when_only_market_changes():
+    watchlist = {"stocks": [
+        {"id": "3236", "name": "卡訊", "market": None},
+    ]}
+    results = [{"id": "3236", "status": "ok", "name": "卡訊", "market": "TPEx"}]
+    assert _backfill_watchlist(watchlist, results) is True
+    assert watchlist["stocks"][0]["market"] == "TPEx"

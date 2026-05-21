@@ -96,6 +96,7 @@ def test_to_int_handles_decimal_form():
 def test_parse_twse_ok_basic():
     payload = {
         "stat": "OK",
+        "title": "115年03月 2330 台積電 各日成交資訊",
         "data": [
             # date, vol, amount, open, high, low, close, change, trades, note
             ["115/03/02", "57,404,594", "1,234,567,890",
@@ -108,7 +109,34 @@ def test_parse_twse_ok_basic():
         date="2026-03-02",
         open=910.0, high=920.0, low=905.0, close=915.0,
         volume=57_404_594,
+        name="台積電",
     )
+
+
+def test_parse_twse_title_missing_yields_empty_name():
+    payload = {
+        "stat": "OK",
+        "data": [
+            ["115/03/02", "1,000", "1,000",
+             "10", "12", "9", "11", "+1", "5", ""],
+        ],
+    }
+    bars = _parse_twse(payload)
+    assert len(bars) == 1
+    assert bars[0].name == ""
+
+
+def test_parse_twse_title_malformed_yields_empty_name():
+    payload = {
+        "stat": "OK",
+        "title": "短標題",  # only 1 token, fewer than 3
+        "data": [
+            ["115/03/02", "1,000", "1,000",
+             "10", "12", "9", "11", "+1", "5", ""],
+        ],
+    }
+    bars = _parse_twse(payload)
+    assert bars[0].name == ""
 
 
 def test_parse_twse_stat_not_ok_returns_empty():
@@ -160,6 +188,7 @@ def test_parse_tpex_ok_basic():
                  "2,450.00", "2,470.00", "2,440.00", "2,465.00", "+15.00", "100"],
             ],
         }],
+        "name": "群聯",
         "stat": "OK",
     }
     bars = _parse_tpex(payload)
@@ -169,6 +198,18 @@ def test_parse_tpex_ok_basic():
     assert bars[0].open == 2450.0
     assert bars[0].close == 2465.0
     assert bars[0].date == "2026-03-02"
+    assert bars[0].name == "群聯"
+
+
+def test_parse_tpex_no_name_field_yields_empty():
+    payload = {
+        "tables": [{
+            "data": [["115/03/02", "100", "1000", "10", "12", "9", "11", "+1", "5"]],
+        }],
+        "stat": "OK",
+    }
+    bars = _parse_tpex(payload)
+    assert bars[0].name == ""
 
 
 def test_parse_tpex_no_tables_returns_empty():
@@ -220,6 +261,7 @@ def test_fetch_twse_latest_all_parses_list(monkeypatch):
     sample = [
         {
             "Code": "2330",
+            "Name": "台積電",
             "Date": "1150515",  # ROC year 115 → 2026, month 05, day 15
             "OpeningPrice": "900.00",
             "HighestPrice": "910.00",
@@ -229,6 +271,7 @@ def test_fetch_twse_latest_all_parses_list(monkeypatch):
         },
         {
             "Code": "8299",
+            "Name": "群聯",
             "Date": "1150515",
             "OpeningPrice": "2,400.00",
             "HighestPrice": "2,470.00",
@@ -243,7 +286,23 @@ def test_fetch_twse_latest_all_parses_list(monkeypatch):
     assert set(out.keys()) == {"2330", "8299"}
     assert out["2330"].date == "2026-05-15"
     assert out["2330"].close == 905.0
+    assert out["2330"].name == "台積電"
     assert out["8299"].volume == 9_028_000
+    assert out["8299"].name == "群聯"
+
+
+def test_fetch_twse_latest_all_missing_name_yields_empty(monkeypatch):
+    sample = [{
+        "Code": "2330",
+        "Date": "1150515",
+        "OpeningPrice": "900", "HighestPrice": "910",
+        "LowestPrice": "895", "ClosingPrice": "905",
+        "TradeVolume": "1000",
+    }]
+    import fetch_twse
+    monkeypatch.setattr(fetch_twse, "_get_json", lambda url, params: sample)
+    out = fetch_twse_latest_all()
+    assert out["2330"].name == ""
 
 
 def test_fetch_twse_latest_all_skips_missing_code():
