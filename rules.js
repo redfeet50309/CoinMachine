@@ -31,11 +31,26 @@ window.Rules = (function () {
     if (s.startsWith('跌破下軌') || s.startsWith('下穿中軌') || s.startsWith('下穿上軌')) return 'bear';
     if (s === '上軌之上') return 'bull';
     if (s === '下軌之下') return 'bear';
+    if (s.startsWith('區間做多')) return 'bull';
+    if (s.startsWith('區間做空')) return 'bear';
     // %B / 位置標籤
     if (s.includes('超強多') || s.includes('多頭')) return 'bull';
     if (s.includes('超強空') || s.includes('空頭')) return 'bear';
     // Bandwidth 收斂 — 借用 .badge.cross 的 warn 色
     if (s.includes('收斂')) return 'cross';
+    return '';
+  }
+
+  function pvClass(s) {
+    if (!s) return '';
+    // 趨勢確認類
+    if (s === '趨勢確認' || s.startsWith('價漲量增')) return 'bull';
+    if (s.startsWith('價跌量縮')) return 'bear';
+    // 背離類 — 用 cross 警示色
+    if (s === '背離' || s.startsWith('價漲量縮') || s.startsWith('價跌量增')) return 'cross';
+    // 階段
+    if (s.startsWith('初期上漲') || s.startsWith('大漲後') || s === '多頭中段') return 'bull';
+    if (s.startsWith('初期下跌') || s.startsWith('大跌後') || s === '空頭中段') return 'bear';
     return '';
   }
 
@@ -61,5 +76,5 @@ window.Rules = (function () {
     return d.toLocaleString('zh-TW', { hour12: false });
   }
 
-  return { trendClass, zoneClass, histClass, bbClass, formatPrice, formatNum, formatPercent, formatTime };
+  return { trendClass, zoneClass, histClass, bbClass, pvClass, formatPrice, formatNum, formatPercent, formatTime };
 })();

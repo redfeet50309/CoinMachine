@@ -16,8 +16,13 @@ from config import (
     MA_CROSS_TREND_LOOKBACK,
     MA_SLOPE_LOOKBACK,
     MA_SPREAD_PCT,
+    MARKET_PHASE_BIG_MOVE_PCT,
+    MARKET_PHASE_NEW_TREND_BARS,
     OSC_STRONG_BARS,
     OSC_TREND_BARS,
+    PV_FLAT_PRICE_PCT,
+    PV_FLAT_VOLUME_PCT,
+    PV_HOLIDAY_SPIKE_PCT,
     RSI_BOUNCE_HIGH,
     RSI_NUMB_BARS,
     RSI_NUMB_PRICE_LOOKBACK,
@@ -351,6 +356,142 @@ def _bb_range_strategy(today: pd.Series, signals: dict[str, Any]) -> str | None:
     return None
 
 
+_PV_TREND_CONFIRM = {"價漲量增", "價跌量縮"}
+_PV_DIVERGENCE = {"價漲量縮", "價跌量增"}
+
+
+def _pv_state(today: pd.Series) -> str:
+    """3×3 price-volume classification using bar-on-bar % change.
+
+    Price level: 漲 / 跌 / 平 by |Δp%| vs PV_FLAT_PRICE_PCT (0.5%).
+    Volume level: 增 / 縮 / 平 by |Δv%| vs PV_FLAT_VOLUME_PCT (20%).
+    """
+    dp = today.get("price_change_pct")
+    dv = today.get("volume_change_pct")
+    if dp is None or dv is None or pd.isna(dp) or pd.isna(dv):
+        return "資料不足"
+
+    if dp > PV_FLAT_PRICE_PCT:
+        p = "價漲"
+    elif dp < -PV_FLAT_PRICE_PCT:
+        p = "價跌"
+    else:
+        p = "價平"
+
+    if dv > PV_FLAT_VOLUME_PCT:
+        v = "量增"
+    elif dv < -PV_FLAT_VOLUME_PCT:
+        v = "量縮"
+    else:
+        v = "量平"
+
+    return f"{p}{v}"
+
+
+def _pv_category(state: str) -> str:
+    """Three high-level groups: 趨勢確認 / 背離 / 盤整(含平)."""
+    if state == "資料不足":
+        return "資料不足"
+    if state in _PV_TREND_CONFIRM:
+        return "趨勢確認"
+    if state in _PV_DIVERGENCE:
+        return "背離"
+    return "盤整"
+
+
+def _market_phase(df: pd.DataFrame, signals: dict[str, Any]) -> str:
+    """5-phase classification of where this stock sits in its trend cycle.
+
+    Used to disambiguate B-zone (背離) price-volume signals: a 價漲量縮 means
+    something very different at the start of a rally vs after a big run-up.
+
+    Order matters — first match wins.
+    """
+    if df.empty:
+        return "資料不足"
+
+    today = df.iloc[-1]
+    trend = signals.get("ma_trend")
+    bb_zone = signals.get("bb_zone")
+    pb = today.get("percent_b")
+    return_n = today.get("return_n")
+    bw_state = signals.get("bb_bandwidth_state") or ""
+
+    has_pb = pb is not None and not pd.isna(pb)
+    has_ret = return_n is not None and not pd.isna(return_n)
+    bull_extreme = (
+        bb_zone == "上軌之上"
+        or (has_pb and pb > BB_PERCENT_B_HIGH)
+        or (has_ret and return_n >= MARKET_PHASE_BIG_MOVE_PCT)
+    )
+    bear_extreme = (
+        bb_zone == "下軌之下"
+        or (has_pb and pb < BB_PERCENT_B_LOW)
+        or (has_ret and return_n <= -MARKET_PHASE_BIG_MOVE_PCT)
+    )
+
+    # 初期判定:今天是趨勢明確 (多/空) 排列,但 N 日前的 ma_trend 不同
+    n = MARKET_PHASE_NEW_TREND_BARS
+    if trend in ("多頭排列", "空頭排列") and len(df) > n:
+        past = df.iloc[-1 - n]
+        past_ma5, past_ma20, past_ma60 = past.get("ma5"), past.get("ma20"), past.get("ma60")
+        past_was_bull = (
+            past_ma5 is not None and past_ma20 is not None and past_ma60 is not None
+            and not pd.isna(past_ma5) and not pd.isna(past_ma20) and not pd.isna(past_ma60)
+            and past_ma5 > past_ma20 > past_ma60
+        )
+        past_was_bear = (
+            past_ma5 is not None and past_ma20 is not None and past_ma60 is not None
+            and not pd.isna(past_ma5) and not pd.isna(past_ma20) and not pd.isna(past_ma60)
+            and past_ma5 < past_ma20 < past_ma60
+        )
+        if trend == "多頭排列" and not past_was_bull and not bull_extreme:
+            return "初期上漲"
+        if trend == "空頭排列" and not past_was_bear and not bear_extreme:
+            return "初期下跌"
+
+    if trend == "多頭排列" and bull_extreme:
+        return "大漲後高位"
+    if trend == "空頭排列" and bear_extreme:
+        return "大跌後低位"
+    if trend == "多頭排列":
+        return "多頭中段"
+    if trend == "空頭排列":
+        return "空頭中段"
+    return "盤整"
+
+
+def _pv_alert(state: str, phase: str, today: pd.Series) -> str | None:
+    """Phase-aware alert text for the 4 background-dependent PV signals.
+
+    Trend-confirming states (價漲量增 in bull, 價跌量縮 in bear) emit no PV
+    alert — they reinforce existing MA alerts, not worth duplicating.
+    """
+    if state == "資料不足":
+        return None
+
+    # 長假守門:量爆 (> +200%) 但價幾乎沒動 → 通常是長假後第一日,壓制 alert
+    dv = today.get("volume_change_pct")
+    dp = today.get("price_change_pct")
+    if (
+        dv is not None and not pd.isna(dv) and dv > PV_HOLIDAY_SPIKE_PCT
+        and dp is not None and not pd.isna(dp) and abs(dp) < 0.01
+    ):
+        return None
+
+    if state == "價漲量縮" and phase == "大漲後高位":
+        return "⚠ 量價背離:漲勢動能衰退 (頂部警訊)"
+    if state == "價跌量增" and phase == "初期下跌":
+        return "⚠ 量價背離:強烈賣壓殺出"
+    if state == "價跌量增" and phase == "大跌後低位":
+        return "⚡ 量價背離:量增低承接 (反轉訊號)"
+    if state == "價漲量增" and phase == "初期上漲":
+        return "✓ 量價同步:多頭啟動確認"
+    if state == "價跌量縮" and phase == "初期下跌":
+        return "✓ 量價同步:空頭啟動確認"
+    return None
+
+
 def _divergence_label(div: Divergence | None, df: pd.DataFrame) -> str | None:
     if not div:
         return None
@@ -402,9 +543,16 @@ def analyze(
         "bb_bandwidth_state": _bb_bandwidth_state(today),
         "bb_range_strategy": None,  # filled below — depends on bb_cross/ma_spread/bandwidth
         "bb_divergence": _divergence_label(bb_divergence, df),
+        "pv_state": _pv_state(today),
+        "pv_category": None,       # filled below
+        "market_phase": None,      # filled below (needs other signals first)
+        "pv_alert": None,          # filled below
     }
     signals["rsi_strategy"] = _rsi_reversal_strategy(df, signals)
     signals["bb_range_strategy"] = _bb_range_strategy(today, signals)
+    signals["pv_category"] = _pv_category(signals["pv_state"])
+    signals["market_phase"] = _market_phase(df, signals)
+    signals["pv_alert"] = _pv_alert(signals["pv_state"], signals["market_phase"], today)
 
     alerts: list[str] = []
     if signals["ma_cross"]:
@@ -431,5 +579,7 @@ def analyze(
         alerts.append(f"今日：{signals['bb_range_strategy']}")
     if signals["bb_divergence"] and not signals["bb_divergence"].startswith("近期"):
         alerts.append(f"今日：布林 {signals['bb_divergence']}")
+    if signals["pv_alert"]:
+        alerts.append(signals["pv_alert"])
 
     return {"signals": signals, "alerts": alerts}

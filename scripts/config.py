@@ -8,7 +8,7 @@ WATCHLIST_FILE = DATA_DIR / "watchlist.json"
 INDEX_FILE = DATA_DIR / "index.json"
 META_FILE = DATA_DIR / "meta.json"
 
-RULE_VERSION = "v1.2.0"
+RULE_VERSION = "v1.3.0"
 SCHEMA_VERSION = 1
 
 TWSE_ENDPOINT = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
@@ -51,6 +51,14 @@ BB_PERCENT_B_HIGH = 0.80
 BB_PERCENT_B_LOW = 0.20
 BB_BANDWIDTH_SQUEEZE = 0.10
 BB_BANDWIDTH_EXTREME = 0.03
+
+# Price-Volume relationship (see plan: bollinger-bands-expressive-lynx.md Part C)
+PV_FLAT_PRICE_PCT = 0.005      # |Δprice%| < 0.5% → 價平
+PV_FLAT_VOLUME_PCT = 0.20      # |Δvolume%| < 20% → 量平
+PV_HOLIDAY_SPIKE_PCT = 2.0     # volume > +200% 且當日近價平 → 視為長假效應,壓制 alert
+MARKET_PHASE_RETURN_LOOKBACK = 20    # 階段判定用的累積報酬窗
+MARKET_PHASE_BIG_MOVE_PCT = 0.15     # 20 日報酬 ≥ ±15% → 大漲後 / 大跌後
+MARKET_PHASE_NEW_TREND_BARS = 5      # MA trend 翻轉後 N 個交易日內視為「初期」
 
 WATCHLIST_MAX_STOCKS = 30      # frontend addStock guard; backend doesn't enforce
 

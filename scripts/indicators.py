@@ -27,6 +27,7 @@ from config import (
     EMA_SLOW,
     MA_PERIODS,
     MACD_SIGNAL,
+    MARKET_PHASE_RETURN_LOOKBACK,
     PEAK_PROMINENCE_PCT,
     RSI_PERIOD,
 )
@@ -75,6 +76,13 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     # back to global BB_BANDWIDTH_SQUEEZE in analyze._bb_bandwidth_state).
     out["bandwidth_pct20"] = out["bandwidth"].rolling(window=250, min_periods=60).quantile(0.20)
     out["bandwidth_pct05"] = out["bandwidth"].rolling(window=250, min_periods=60).quantile(0.05)
+
+    # Price-Volume daily change (bar-on-bar) + cumulative return for market-phase detection.
+    # volume.pct_change() yields inf when yesterday volume = 0; map to NaN so downstream
+    # _pv_state treats it as 資料不足 rather than registering a fake huge spike.
+    out["price_change_pct"] = close.pct_change()
+    out["volume_change_pct"] = out["volume"].pct_change().replace([np.inf, -np.inf], np.nan)
+    out["return_n"] = close.pct_change(periods=MARKET_PHASE_RETURN_LOOKBACK)
 
     return out
 

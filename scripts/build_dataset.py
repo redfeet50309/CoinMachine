@@ -229,6 +229,15 @@ def update_stock(
             "range_strategy": result["signals"].get("bb_range_strategy"),
             "divergence": result["signals"].get("bb_divergence"),
         },
+        "pv": {
+            "price_change_pct": _safe_float(today.get("price_change_pct")),
+            "volume_change_pct": _safe_float(today.get("volume_change_pct")),
+            "return_n": _safe_float(today.get("return_n")),
+            "state": result["signals"].get("pv_state"),
+            "category": result["signals"].get("pv_category"),
+            "phase": result["signals"].get("market_phase"),
+            "alert": result["signals"].get("pv_alert"),
+        },
         "signals": result["signals"],
         "alerts": result["alerts"],
     }
@@ -255,6 +264,8 @@ def update_stock(
             "percent_b": _safe_float(row.get("percent_b")),
             "bandwidth": _safe_float(row.get("bandwidth")),
             "bandwidth_pct20": _safe_float(row.get("bandwidth_pct20")),
+            "price_change_pct": _safe_float(row.get("price_change_pct")),
+            "volume_change_pct": _safe_float(row.get("volume_change_pct")),
         }
         for _, row in df_keep.iterrows()
     ]

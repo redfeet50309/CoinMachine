@@ -25,6 +25,10 @@ from analyze import (  # noqa: E402
     _macd_cross,
     _macd_histogram,
     _macd_zone,
+    _market_phase,
+    _pv_alert,
+    _pv_category,
+    _pv_state,
     _spread_state,
     analyze,
 )
@@ -683,6 +687,240 @@ def test_analyze_bb_range_strategy_emits_alert():
     assert out["signals"]["bb_cross"] is None
     assert out["signals"]["bb_range_strategy"] == "區間做多 (下軌支撐)"
     assert any("區間做多" in a for a in out["alerts"])
+
+
+# ---------- _pv_state (9-state classification) ----------
+
+def _pv_row(dp, dv):
+    return _row(price_change_pct=dp, volume_change_pct=dv)
+
+
+def test_pv_state_price_up_volume_up():
+    assert _pv_state(_pv_row(0.02, 0.30)) == "價漲量增"
+
+
+def test_pv_state_price_up_volume_down():
+    assert _pv_state(_pv_row(0.02, -0.30)) == "價漲量縮"
+
+
+def test_pv_state_price_up_volume_flat():
+    assert _pv_state(_pv_row(0.02, 0.10)) == "價漲量平"
+
+
+def test_pv_state_price_down_volume_up():
+    assert _pv_state(_pv_row(-0.02, 0.30)) == "價跌量增"
+
+
+def test_pv_state_price_down_volume_down():
+    assert _pv_state(_pv_row(-0.02, -0.30)) == "價跌量縮"
+
+
+def test_pv_state_price_down_volume_flat():
+    assert _pv_state(_pv_row(-0.02, 0.10)) == "價跌量平"
+
+
+def test_pv_state_price_flat_volume_up():
+    assert _pv_state(_pv_row(0.003, 0.30)) == "價平量增"
+
+
+def test_pv_state_price_flat_volume_down():
+    assert _pv_state(_pv_row(0.003, -0.30)) == "價平量縮"
+
+
+def test_pv_state_price_flat_volume_flat():
+    assert _pv_state(_pv_row(0.003, 0.10)) == "價平量平"
+
+
+def test_pv_state_data_insufficient_when_nan():
+    assert _pv_state(_pv_row(float("nan"), 0.30)) == "資料不足"
+    assert _pv_state(_pv_row(0.02, float("nan"))) == "資料不足"
+
+
+def test_pv_state_boundary_exact_flat_threshold():
+    # |dp| == 0.005 is NOT > 0.005 → 平
+    assert _pv_state(_pv_row(0.005, 0.30)) == "價平量增"
+    # |dv| == 0.20 is NOT > 0.20 → 平
+    assert _pv_state(_pv_row(0.02, 0.20)) == "價漲量平"
+
+
+# ---------- _pv_category ----------
+
+def test_pv_category_trend_confirmation():
+    assert _pv_category("價漲量增") == "趨勢確認"
+    assert _pv_category("價跌量縮") == "趨勢確認"
+
+
+def test_pv_category_divergence():
+    assert _pv_category("價漲量縮") == "背離"
+    assert _pv_category("價跌量增") == "背離"
+
+
+def test_pv_category_consolidation_includes_all_flat():
+    for s in ("價漲量平", "價跌量平", "價平量增", "價平量縮", "價平量平"):
+        assert _pv_category(s) == "盤整", f"{s} → expected 盤整"
+
+
+def test_pv_category_data_insufficient_passthrough():
+    assert _pv_category("資料不足") == "資料不足"
+
+
+# ---------- _market_phase ----------
+
+def _phase_df(rows):
+    return pd.DataFrame(rows)
+
+
+def test_market_phase_new_bull_start():
+    """Today is bull, but 5 days ago wasn't → 初期上漲. Don't satisfy bull_extreme."""
+    rows = [
+        # 5 days ago: not bull (ma5 < ma20)
+        {"close": 100, "ma5": 99, "ma20": 100, "ma60": 100, "return_n": 0.02},
+        {"close": 100, "ma5": 99, "ma20": 100, "ma60": 100, "return_n": 0.02},
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100, "return_n": 0.02},
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100, "return_n": 0.02},
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100, "return_n": 0.02},
+        # Today: bull arrangement, moderate %B
+        {"close": 102, "ma5": 102, "ma20": 101, "ma60": 100, "return_n": 0.03, "percent_b": 0.5},
+    ]
+    df = _phase_df(rows)
+    signals = {"ma_trend": "多頭排列", "bb_zone": "多頭區間"}
+    assert _market_phase(df, signals) == "初期上漲"
+
+
+def test_market_phase_big_rally_high_position():
+    rows = [{"close": 100, "ma5": 105, "ma20": 102, "ma60": 100,
+             "percent_b": 0.95, "return_n": 0.20} for _ in range(10)]
+    df = _phase_df(rows)
+    signals = {"ma_trend": "多頭排列", "bb_zone": "上軌之上"}
+    assert _market_phase(df, signals) == "大漲後高位"
+
+
+def test_market_phase_new_bear_start():
+    rows = [
+        {"close": 100, "ma5": 101, "ma20": 100, "ma60": 100, "return_n": -0.02},
+        {"close": 100, "ma5": 101, "ma20": 100, "ma60": 100, "return_n": -0.02},
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100, "return_n": -0.02},
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100, "return_n": -0.02},
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100, "return_n": -0.02},
+        {"close": 98, "ma5": 98, "ma20": 99, "ma60": 100, "return_n": -0.03, "percent_b": 0.5},
+    ]
+    df = _phase_df(rows)
+    signals = {"ma_trend": "空頭排列", "bb_zone": "空頭區間"}
+    assert _market_phase(df, signals) == "初期下跌"
+
+
+def test_market_phase_big_drop_low_position():
+    rows = [{"close": 100, "ma5": 95, "ma20": 98, "ma60": 100,
+             "percent_b": 0.05, "return_n": -0.20} for _ in range(10)]
+    df = _phase_df(rows)
+    signals = {"ma_trend": "空頭排列", "bb_zone": "下軌之下"}
+    assert _market_phase(df, signals) == "大跌後低位"
+
+
+def test_market_phase_consolidation_when_no_trend():
+    rows = [{"close": 100, "ma5": 100, "ma20": 100, "ma60": 100,
+             "percent_b": 0.5, "return_n": 0.0} for _ in range(10)]
+    df = _phase_df(rows)
+    signals = {"ma_trend": "盤整", "bb_zone": "多頭區間"}
+    assert _market_phase(df, signals) == "盤整"
+
+
+def test_market_phase_bull_mid_segment():
+    """Bull arrangement, neither bull_extreme NOR new trend → 多頭中段."""
+    rows = [
+        # 5 days ago: already bull (so no "新趨勢")
+        {"close": 100, "ma5": 103, "ma20": 101, "ma60": 100, "percent_b": 0.5, "return_n": 0.05}
+        for _ in range(10)
+    ]
+    df = _phase_df(rows)
+    signals = {"ma_trend": "多頭排列", "bb_zone": "多頭區間"}
+    assert _market_phase(df, signals) == "多頭中段"
+
+
+def test_market_phase_empty_df_data_insufficient():
+    assert _market_phase(pd.DataFrame(), {}) == "資料不足"
+
+
+# ---------- _pv_alert ----------
+
+def test_pv_alert_bull_divergence_at_high():
+    today = _row(price_change_pct=0.02, volume_change_pct=-0.30)
+    assert _pv_alert("價漲量縮", "大漲後高位", today) == "⚠ 量價背離:漲勢動能衰退 (頂部警訊)"
+
+
+def test_pv_alert_bear_divergence_early():
+    today = _row(price_change_pct=-0.02, volume_change_pct=0.30)
+    assert _pv_alert("價跌量增", "初期下跌", today) == "⚠ 量價背離:強烈賣壓殺出"
+
+
+def test_pv_alert_capitulation_reversal():
+    today = _row(price_change_pct=-0.02, volume_change_pct=0.50)
+    assert _pv_alert("價跌量增", "大跌後低位", today) == "⚡ 量價背離:量增低承接 (反轉訊號)"
+
+
+def test_pv_alert_bull_start_confirmation():
+    today = _row(price_change_pct=0.03, volume_change_pct=0.40)
+    assert _pv_alert("價漲量增", "初期上漲", today) == "✓ 量價同步:多頭啟動確認"
+
+
+def test_pv_alert_trend_confirmation_in_mid_segment_silent():
+    # Mid-segment 價漲量增 doesn't fire (redundant with MA alerts)
+    today = _row(price_change_pct=0.02, volume_change_pct=0.30)
+    assert _pv_alert("價漲量增", "多頭中段", today) is None
+
+
+def test_pv_alert_consolidation_states_silent():
+    today = _row(price_change_pct=0.003, volume_change_pct=0.10)
+    assert _pv_alert("價平量平", "盤整", today) is None
+
+
+def test_pv_alert_holiday_spike_suppressed():
+    # Volume +250%, price flat → 長假效應,即使其他組合也壓制
+    today = _row(price_change_pct=0.003, volume_change_pct=2.50)
+    assert _pv_alert("價平量增", "盤整", today) is None
+    # Even a "real" signal config gets suppressed
+    today2 = _row(price_change_pct=0.005, volume_change_pct=2.50)
+    assert _pv_alert("價平量增", "大漲後高位", today2) is None
+
+
+def test_pv_alert_data_insufficient_returns_none():
+    today = _row(price_change_pct=float("nan"), volume_change_pct=float("nan"))
+    assert _pv_alert("資料不足", "盤整", today) is None
+
+
+# ---------- analyze (PV integration) ----------
+
+def test_analyze_pv_keys_present_with_data():
+    rows = [{"close": 100, "ma5": 100, "ma20": 100, "ma60": 100,
+             "dif": 0, "macd": 0, "osc": 0, "rsi": 50,
+             "price_change_pct": 0, "volume_change_pct": 0, "return_n": 0}
+            for _ in range(5)]
+    rows.append({
+        "close": 102, "ma5": 102, "ma20": 101, "ma60": 100,
+        "dif": 0.5, "macd": 0.3, "osc": 0.2, "rsi": 55,
+        "price_change_pct": 0.02, "volume_change_pct": 0.40, "return_n": 0.02,
+        "percent_b": 0.55,
+    })
+    out = analyze(_build_df(rows), None)
+    sig = out["signals"]
+    assert sig["pv_state"] == "價漲量增"
+    assert sig["pv_category"] == "趨勢確認"
+    # Phase = 初期上漲 (5 days ago not bull, today bull, return < 15%, %B not extreme)
+    assert sig["market_phase"] == "初期上漲"
+    assert sig["pv_alert"] == "✓ 量價同步:多頭啟動確認"
+    assert "✓ 量價同步:多頭啟動確認" in out["alerts"]
+
+
+def test_analyze_pv_missing_columns_returns_data_insufficient():
+    rows = [
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100,
+         "dif": 0.5, "macd": 0.3, "osc": 0.2, "rsi": 50},
+        {"close": 101, "ma5": 101, "ma20": 100, "ma60": 100,
+         "dif": 0.5, "macd": 0.3, "osc": 0.2, "rsi": 50},
+    ]
+    out = analyze(_build_df(rows), None)
+    assert out["signals"]["pv_state"] == "資料不足"
+    assert out["signals"]["pv_category"] == "資料不足"
 
 
 def test_analyze_bb_missing_columns_returns_data_insufficient():

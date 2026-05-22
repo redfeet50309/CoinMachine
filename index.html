@@ -8,10 +8,10 @@
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E📈%3C/text%3E%3C/svg%3E">
   <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
-  <script defer src="rules.js?v=9"></script>
-  <script defer src="api.js?v=9"></script>
-  <script defer src="chart.js?v=9"></script>
-  <script defer src="app.js?v=9"></script>
+  <script defer src="rules.js?v=10"></script>
+  <script defer src="api.js?v=10"></script>
+  <script defer src="chart.js?v=10"></script>
+  <script defer src="app.js?v=10"></script>
   <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body x-data="appComponent()" x-init="init()">
@@ -126,6 +126,25 @@
             </div>
             <div class="macd-row">
               <div><span class="label">RSI(14)</span><span x-text="formatNum(card.data.latest.rsi?.value)"></span></div>
+            </div>
+          </section>
+
+          <section class="block" x-show="card.data.latest.pv">
+            <h3>量價 / 階段</h3>
+            <div class="badges">
+              <span class="badge" :class="pvClass(card.data.latest.pv?.state)"
+                    x-text="card.data.latest.pv?.state"></span>
+              <span class="badge" :class="pvClass(card.data.latest.pv?.category)"
+                    x-text="card.data.latest.pv?.category"></span>
+              <span class="badge" :class="pvClass(card.data.latest.pv?.phase)"
+                    x-text="card.data.latest.pv?.phase"></span>
+              <span class="badge cross" x-show="card.data.latest.pv?.alert"
+                    x-text="card.data.latest.pv?.alert"></span>
+            </div>
+            <div class="macd-row">
+              <div><span class="label">價變動</span><span x-text="formatPercent(card.data.latest.pv?.price_change_pct)"></span></div>
+              <div><span class="label">量變動</span><span x-text="formatPercent(card.data.latest.pv?.volume_change_pct)"></span></div>
+              <div><span class="label">20日報酬</span><span x-text="formatPercent(card.data.latest.pv?.return_n)"></span></div>
             </div>
           </section>
 

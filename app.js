@@ -8,7 +8,7 @@
   function appComponent() {
     const { fetchWatchlist, fetchMeta, fetchStock,
             getPat, writeWatchlist, readLocalWatchlist, writeLocalWatchlist } = window.Api;
-    const { trendClass, zoneClass, histClass, bbClass, formatPrice, formatNum, formatPercent, formatTime } = window.Rules;
+    const { trendClass, zoneClass, histClass, bbClass, pvClass, formatPrice, formatNum, formatPercent, formatTime } = window.Rules;
     const { drawCharts, destroyCharts } = window.ChartLib;
 
     return {
@@ -21,7 +21,7 @@
       error: '',
       loading: true,
       hasPat: false,
-      trendClass, zoneClass, histClass, bbClass, formatPrice, formatNum, formatPercent, formatTime,
+      trendClass, zoneClass, histClass, bbClass, pvClass, formatPrice, formatNum, formatPercent, formatTime,
 
       get displayed() {
         const ids = (this.watchlist.stocks || []).map(s => s.id);
