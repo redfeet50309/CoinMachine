@@ -145,6 +145,10 @@ a:hover { color: var(--accent-soft); text-decoration: underline; }
   background: var(--surface-2);
   gap: 10px;
 }
+.card-head:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 .id-name { display: flex; align-items: baseline; gap: 8px; flex: 1; min-width: 0; }
 .code { font-weight: 700; font-family: ui-monospace, monospace; color: var(--accent); }
 .name { font-size: 1.05em; }
@@ -161,11 +165,21 @@ a:hover { color: var(--accent-soft); text-decoration: underline; }
   border: none;
   color: var(--text-dim);
   font-size: 1.3em;
-  width: 26px;
-  height: 26px;
+  /* 40×40 觸控命中區(WCAG 2.2 AA 24×24 充分通過,接近 AAA 44×44);
+     視覺 × 文字維持原大小、置中於 box,看起來仍俐落 */
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-control);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+}
+.remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 .remove:hover { background: var(--bull-soft); color: var(--bull-text); }
 
