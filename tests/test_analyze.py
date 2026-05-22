@@ -17,6 +17,7 @@ from analyze import (  # noqa: E402
     _bb_bandwidth_state,
     _bb_cross,
     _bb_percent_b_zone,
+    _bb_range_strategy,
     _bb_zone,
     _direction_streak,
     _ma_cross,
@@ -541,6 +542,38 @@ def test_bb_bandwidth_data_insufficient():
     assert _bb_bandwidth_state(_row(bandwidth=float("nan"))) == "資料不足"
 
 
+def test_bb_bandwidth_per_stock_extreme():
+    # bw below this stock's p5 → 極度收斂 (個股 p5)
+    today = _row(bandwidth=0.04, bandwidth_pct20=0.08, bandwidth_pct05=0.05)
+    assert _bb_bandwidth_state(today) == "極度收斂 (個股 p5)"
+
+
+def test_bb_bandwidth_per_stock_squeeze():
+    # bw between p5 and p20 → 收斂 (個股 p20)
+    today = _row(bandwidth=0.07, bandwidth_pct20=0.08, bandwidth_pct05=0.05)
+    assert _bb_bandwidth_state(today) == "收斂 (個股 p20)"
+
+
+def test_bb_bandwidth_per_stock_normal():
+    # bw above p20 → 正常 (even if globally below 0.10 squeeze)
+    today = _row(bandwidth=0.09, bandwidth_pct20=0.08, bandwidth_pct05=0.05)
+    assert _bb_bandwidth_state(today) == "正常"
+
+
+def test_bb_bandwidth_falls_back_to_global_when_pct_nan():
+    # Per-stock thresholds NaN (warmup) → global thresholds apply
+    today = _row(bandwidth=0.07, bandwidth_pct20=float("nan"), bandwidth_pct05=float("nan"))
+    assert _bb_bandwidth_state(today) == "收斂"  # global: 0.07 < 0.10
+    today2 = _row(bandwidth=0.02, bandwidth_pct20=float("nan"), bandwidth_pct05=float("nan"))
+    assert _bb_bandwidth_state(today2) == "極度收斂"
+
+
+def test_bb_bandwidth_falls_back_when_pct_keys_missing():
+    # No pct columns at all (older data) → global thresholds
+    today = _row(bandwidth=0.07)
+    assert _bb_bandwidth_state(today) == "收斂"
+
+
 # ---------- analyze (BB integration) ----------
 
 def test_analyze_bb_keys_present_with_data():
@@ -577,6 +610,79 @@ def test_analyze_bb_squeeze_alert():
     out = analyze(_build_df(rows), None)
     assert out["signals"]["bb_bandwidth_state"] == "極度收斂"
     assert any("極度收斂" in a for a in out["alerts"])
+
+
+# ---------- _bb_range_strategy ----------
+
+def _bb_range_signals(spread="糾結", bw_state="正常", cross=None):
+    return {"ma_spread_state": spread, "bb_bandwidth_state": bw_state, "bb_cross": cross}
+
+
+def test_bb_range_long_at_lower_band():
+    today = _row(percent_b=0.10)
+    assert _bb_range_strategy(today, _bb_range_signals()) == "區間做多 (下軌支撐)"
+
+
+def test_bb_range_short_at_upper_band():
+    today = _row(percent_b=0.90)
+    assert _bb_range_strategy(today, _bb_range_signals()) == "區間做空 (上軌壓力)"
+
+
+def test_bb_range_middle_no_signal():
+    today = _row(percent_b=0.50)
+    assert _bb_range_strategy(today, _bb_range_signals()) is None
+
+
+def test_bb_range_blocked_by_active_cross():
+    # 即使在區間極端值,若今天 cross 觸發,優先 cross
+    today = _row(percent_b=0.10)
+    sigs = _bb_range_signals(cross="跌破下軌 (強空)")
+    assert _bb_range_strategy(today, sigs) is None
+
+
+def test_bb_range_blocked_when_squeezing():
+    today = _row(percent_b=0.10)
+    assert _bb_range_strategy(today, _bb_range_signals(bw_state="收斂")) is None
+    assert _bb_range_strategy(today, _bb_range_signals(bw_state="極度收斂")) is None
+
+
+def test_bb_range_blocked_when_diverging():
+    # 趨勢明顯(發散)不適合區間策略
+    today = _row(percent_b=0.10)
+    assert _bb_range_strategy(today, _bb_range_signals(spread="多頭發散")) is None
+    assert _bb_range_strategy(today, _bb_range_signals(spread="空頭發散")) is None
+    assert _bb_range_strategy(today, _bb_range_signals(spread="向上發散")) is None
+
+
+def test_bb_range_allows_normal_spread():
+    today = _row(percent_b=0.10)
+    assert _bb_range_strategy(today, _bb_range_signals(spread="普通")) == "區間做多 (下軌支撐)"
+
+
+def test_bb_range_percent_b_nan_returns_none():
+    today = _row(percent_b=float("nan"))
+    assert _bb_range_strategy(today, _bb_range_signals()) is None
+
+
+def test_analyze_bb_range_strategy_emits_alert():
+    rows = [
+        {"close": 99, "ma5": 100, "ma20": 100, "ma60": 100,
+         "dif": 0, "macd": 0, "osc": 0, "rsi": 50,
+         "bb_upper": 110, "bb_middle": 100, "bb_lower": 90,
+         "percent_b": 0.5, "bandwidth": 0.20},
+        # today close hits near lower; percent_b = 0.10
+        {"close": 91, "ma5": 100, "ma20": 100, "ma60": 100,
+         "dif": 0, "macd": 0, "osc": 0, "rsi": 50,
+         "bb_upper": 110, "bb_middle": 100, "bb_lower": 90,
+         "percent_b": 0.05, "bandwidth": 0.20},
+    ]
+    out = analyze(_build_df(rows), None)
+    # yest <= 90, today 91 → cross "上穿下軌"? Let me check: yest 99 → above lower 90, today 91 → still ≥ lower.
+    # That's NOT a cross (#5 requires yest < lower). So bb_cross should be None.
+    # ma_spread_state needs 5/20/60 inputs — all 100, spread 0% → 糾結
+    assert out["signals"]["bb_cross"] is None
+    assert out["signals"]["bb_range_strategy"] == "區間做多 (下軌支撐)"
+    assert any("區間做多" in a for a in out["alerts"])
 
 
 def test_analyze_bb_missing_columns_returns_data_insufficient():

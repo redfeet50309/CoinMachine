@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from indicators import (  # noqa: E402
     compute_indicators,
     compute_rsi,
+    detect_bb_divergence,
     detect_divergence,
     detect_rsi_divergence,
 )
@@ -275,3 +276,41 @@ def test_bandwidth_formula():
     row = out.iloc[-1]
     expected = (row["bb_upper"] - row["bb_lower"]) / row["bb_middle"]
     assert row["bandwidth"] == pytest.approx(expected, rel=1e-12)
+
+
+def test_detect_bb_divergence_returns_none_insufficient():
+    df = _df([float(c) for c in range(1, 30)])
+    out = compute_indicators(df)
+    assert detect_bb_divergence(out) is None
+
+
+def test_bandwidth_pct_columns_present():
+    df = _df([float(c) for c in range(1, 100)])
+    out = compute_indicators(df)
+    assert "bandwidth_pct20" in out.columns
+    assert "bandwidth_pct05" in out.columns
+
+
+def test_bandwidth_pct_warmup_requires_min_60_bandwidth_bars():
+    """BB needs 20 bars to start producing bandwidth; pct quantiles need
+    additional 60 bars of bandwidth → first ~80 rows have NaN pct columns."""
+    df = _df([float(c) for c in range(1, 100)])
+    out = compute_indicators(df)
+    # At index 78 (79th row), bandwidth has only ~60 values (78 - 19 + 1 = 60) → enough
+    # At index 30, bandwidth has only 11 values → too few
+    assert pd.isna(out["bandwidth_pct20"].iloc[30])
+    assert not pd.isna(out["bandwidth_pct20"].iloc[-1])
+
+
+def test_detect_bb_divergence_runs_on_realistic_series():
+    """Smoke test — verify %B-based divergence pipeline doesn't crash."""
+    closes = []
+    for i in range(80):
+        base = 100 + i * 0.4 + np.sin(i * 0.4) * 3
+        closes.append(base)
+    df = _df(closes)
+    out = compute_indicators(df)
+    result = detect_bb_divergence(out)
+    assert result is None or result.kind in ("top", "bottom")
+    if result:
+        assert result.source == "bb"

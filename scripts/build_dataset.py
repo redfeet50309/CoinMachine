@@ -189,12 +189,13 @@ def update_stock(
     days_since = (date.today() - date.fromisoformat(last_trade_date)).days
     inactive = days_since >= INACTIVE_AFTER_MISSING_DAYS * 2
 
-    from indicators import compute_indicators, detect_divergence, detect_rsi_divergence
+    from indicators import compute_indicators, detect_bb_divergence, detect_divergence, detect_rsi_divergence
 
     df_ind = compute_indicators(df_full)
     macd_divergence = detect_divergence(df_ind)
     rsi_divergence = detect_rsi_divergence(df_ind)
-    result = analyze(df_ind, macd_divergence, rsi_divergence)
+    bb_divergence = detect_bb_divergence(df_ind)
+    result = analyze(df_ind, macd_divergence, rsi_divergence, bb_divergence)
 
     today = df_ind.iloc[-1]
     latest = {
@@ -219,10 +220,14 @@ def update_stock(
             "lower": _safe_float(today.get("bb_lower")),
             "percent_b": _safe_float(today.get("percent_b")),
             "bandwidth": _safe_float(today.get("bandwidth")),
+            "bandwidth_pct20": _safe_float(today.get("bandwidth_pct20")),
+            "bandwidth_pct05": _safe_float(today.get("bandwidth_pct05")),
             "zone": result["signals"].get("bb_zone"),
             "cross": result["signals"].get("bb_cross"),
             "percent_b_zone": result["signals"].get("bb_percent_b_zone"),
             "bandwidth_state": result["signals"].get("bb_bandwidth_state"),
+            "range_strategy": result["signals"].get("bb_range_strategy"),
+            "divergence": result["signals"].get("bb_divergence"),
         },
         "signals": result["signals"],
         "alerts": result["alerts"],
@@ -249,6 +254,7 @@ def update_stock(
             "bb_lower": _safe_float(row.get("bb_lower")),
             "percent_b": _safe_float(row.get("percent_b")),
             "bandwidth": _safe_float(row.get("bandwidth")),
+            "bandwidth_pct20": _safe_float(row.get("bandwidth_pct20")),
         }
         for _, row in df_keep.iterrows()
     ]

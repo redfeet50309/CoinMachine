@@ -8,10 +8,10 @@
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E📈%3C/text%3E%3C/svg%3E">
   <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
-  <script defer src="rules.js?v=8"></script>
-  <script defer src="api.js?v=8"></script>
-  <script defer src="chart.js?v=8"></script>
-  <script defer src="app.js?v=8"></script>
+  <script defer src="rules.js?v=9"></script>
+  <script defer src="api.js?v=9"></script>
+  <script defer src="chart.js?v=9"></script>
+  <script defer src="app.js?v=9"></script>
   <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body x-data="appComponent()" x-init="init()">
@@ -140,6 +140,10 @@
                     x-text="card.data.latest.bb?.percent_b_zone"></span>
               <span class="badge" :class="bbClass(card.data.latest.bb?.bandwidth_state)"
                     x-text="card.data.latest.bb?.bandwidth_state"></span>
+              <span class="badge cross" x-show="card.data.latest.bb?.range_strategy"
+                    x-text="card.data.latest.bb?.range_strategy"></span>
+              <span class="badge diverge" x-show="card.data.latest.bb?.divergence"
+                    x-text="card.data.latest.bb?.divergence"></span>
             </div>
             <div class="macd-row">
               <div><span class="label">上軌</span><span x-text="formatPrice(card.data.latest.bb?.upper)"></span></div>
@@ -147,6 +151,7 @@
               <div><span class="label">下軌</span><span x-text="formatPrice(card.data.latest.bb?.lower)"></span></div>
               <div><span class="label">%B</span><span x-text="formatPercent(card.data.latest.bb?.percent_b)"></span></div>
               <div><span class="label">帶寬</span><span x-text="formatNum(card.data.latest.bb?.bandwidth)"></span></div>
+              <div><span class="label">個股 p20</span><span x-text="formatNum(card.data.latest.bb?.bandwidth_pct20)"></span></div>
             </div>
           </section>
 
@@ -155,6 +160,8 @@
               <div class="chart-container" :id="'chart-price-' + card.id"></div>
               <div class="chart-container small" :id="'chart-macd-' + card.id"></div>
               <div class="chart-container small" :id="'chart-rsi-' + card.id"></div>
+              <div class="chart-container small" :id="'chart-bb-' + card.id"></div>
+              <div class="chart-container small" :id="'chart-bandwidth-' + card.id"></div>
               <p class="warning">注意：價格未還原除權息，跨除權息日均線會跳空</p>
             </section>
           </template>

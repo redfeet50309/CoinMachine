@@ -2,13 +2,15 @@
 // Exposed via window.ChartLib for non-module load order.
 
 window.ChartLib = (function () {
-  const charts = new Map(); // id -> { priceChart, macdChart, rsiChart, resize }
+  const charts = new Map(); // id -> { priceChart, macdChart, rsiChart, bbChart, bandwidthChart, resize }
 
   function drawCharts(stockId, history) {
     destroyCharts(stockId);
     const priceEl = document.getElementById(`chart-price-${stockId}`);
     const macdEl = document.getElementById(`chart-macd-${stockId}`);
     const rsiEl = document.getElementById(`chart-rsi-${stockId}`);
+    const bbEl = document.getElementById(`chart-bb-${stockId}`);
+    const bwEl = document.getElementById(`chart-bandwidth-${stockId}`);
     if (!priceEl || !macdEl) return;
 
     const recent = history.slice(-90);
@@ -117,25 +119,91 @@ window.ChartLib = (function () {
       rsiChart.timeScale().fitContent();
     }
 
-    const syncTimes = (src, dst) => src.timeScale().subscribeVisibleLogicalRangeChange(r => {
-      if (r) dst.timeScale().setVisibleLogicalRange(r);
-    });
-    syncTimes(priceChart, macdChart);
-    syncTimes(macdChart, priceChart);
-    if (rsiChart) {
-      syncTimes(priceChart, rsiChart);
-      syncTimes(rsiChart, priceChart);
-      syncTimes(macdChart, rsiChart);
+    let bbChart = null;
+    if (bbEl) {
+      bbChart = LightweightCharts.createChart(bbEl, {
+        ...baseOptions,
+        height: 140,
+      });
+      const pbLine = bbChart.addLineSeries({
+        color: '#42a5f5', lineWidth: 1, title: '%B',
+      });
+      pbLine.setData(recent.filter(d => d.percent_b != null).map(d => ({
+        time: d.date, value: d.percent_b,
+      })));
+      // %B reference lines: 0 / 0.2 / 0.5 / 0.8 / 1.0
+      const refLines = [
+        { p: 1.0, c: '#e34d4d', t: '1.0' },
+        { p: 0.8, c: '#ffb84d', t: '0.8' },
+        { p: 0.5, c: '#7e8a9a', t: '0.5' },
+        { p: 0.2, c: '#ffb84d', t: '0.2' },
+        { p: 0.0, c: '#26a69a', t: '0.0' },
+      ];
+      for (const r of refLines) {
+        pbLine.createPriceLine({
+          price: r.p, color: r.c, lineWidth: 1, lineStyle: 2,
+          axisLabelVisible: true, title: r.t,
+        });
+      }
+      bbChart.timeScale().fitContent();
+    }
+
+    let bandwidthChart = null;
+    if (bwEl) {
+      bandwidthChart = LightweightCharts.createChart(bwEl, {
+        ...baseOptions,
+        height: 110,
+      });
+      const bwHist = bandwidthChart.addHistogramSeries({
+        color: '#90a4ae', priceLineVisible: false, title: 'Bandwidth',
+      });
+      bwHist.setData(recent.filter(d => d.bandwidth != null).map(d => ({
+        time: d.date, value: d.bandwidth,
+      })));
+      // Global squeeze line + per-stock p20 line (drawn from latest available value)
+      bwHist.createPriceLine({
+        price: 0.10, color: '#ffb84d', lineWidth: 1, lineStyle: 2,
+        axisLabelVisible: true, title: '0.10 squeeze',
+      });
+      const lastP20 = [...recent].reverse().find(d => d.bandwidth_pct20 != null);
+      if (lastP20) {
+        bwHist.createPriceLine({
+          price: lastP20.bandwidth_pct20, color: '#5fa8ff', lineWidth: 1, lineStyle: 1,
+          axisLabelVisible: true, title: 'p20',
+        });
+      }
+      bandwidthChart.timeScale().fitContent();
+    }
+
+    const subscribers = [];
+    const syncTimes = (src, dst) => {
+      const handler = r => { if (r) dst.timeScale().setVisibleLogicalRange(r); };
+      src.timeScale().subscribeVisibleLogicalRangeChange(handler);
+      subscribers.push({ src, handler });
+    };
+    const otherCharts = [macdChart, rsiChart, bbChart, bandwidthChart].filter(Boolean);
+    for (const c of otherCharts) {
+      syncTimes(priceChart, c);
+      syncTimes(c, priceChart);
+    }
+    // Cross-sync between non-price charts too, so dragging any moves all
+    for (let i = 0; i < otherCharts.length; i++) {
+      for (let j = i + 1; j < otherCharts.length; j++) {
+        syncTimes(otherCharts[i], otherCharts[j]);
+        syncTimes(otherCharts[j], otherCharts[i]);
+      }
     }
 
     const resize = () => {
       priceChart.applyOptions({ width: priceEl.clientWidth });
       macdChart.applyOptions({ width: macdEl.clientWidth });
       if (rsiChart && rsiEl) rsiChart.applyOptions({ width: rsiEl.clientWidth });
+      if (bbChart && bbEl) bbChart.applyOptions({ width: bbEl.clientWidth });
+      if (bandwidthChart && bwEl) bandwidthChart.applyOptions({ width: bwEl.clientWidth });
     };
     window.addEventListener('resize', resize);
 
-    charts.set(stockId, { priceChart, macdChart, rsiChart, resize });
+    charts.set(stockId, { priceChart, macdChart, rsiChart, bbChart, bandwidthChart, resize });
   }
 
   function destroyCharts(stockId) {
@@ -146,6 +214,8 @@ window.ChartLib = (function () {
       entry.priceChart.remove();
       entry.macdChart.remove();
       if (entry.rsiChart) entry.rsiChart.remove();
+      if (entry.bbChart) entry.bbChart.remove();
+      if (entry.bandwidthChart) entry.bandwidthChart.remove();
     } catch {}
     charts.delete(stockId);
   }

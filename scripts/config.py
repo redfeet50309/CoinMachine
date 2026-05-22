@@ -8,7 +8,7 @@ WATCHLIST_FILE = DATA_DIR / "watchlist.json"
 INDEX_FILE = DATA_DIR / "index.json"
 META_FILE = DATA_DIR / "meta.json"
 
-RULE_VERSION = "v1.1.0"
+RULE_VERSION = "v1.2.0"
 SCHEMA_VERSION = 1
 
 TWSE_ENDPOINT = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"

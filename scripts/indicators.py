@@ -41,7 +41,7 @@ class Divergence:
     price_curr: float
     indicator_prev: float
     indicator_curr: float
-    source: Literal["macd", "rsi"] = "macd"
+    source: Literal["macd", "rsi", "bb"] = "macd"
 
 
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
@@ -70,6 +70,11 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     # Guard against zero band-range (constant series) → NaN instead of div-by-zero.
     out["percent_b"] = (close - out["bb_lower"]) / bb_range.where(bb_range != 0)
     out["bandwidth"] = bb_range / bb_mid.where(bb_mid != 0)
+    # Per-stock squeeze baseline: 250-day rolling 20th/5th percentile of bandwidth.
+    # Requires ≥60 days of bandwidth before producing values (so early data falls
+    # back to global BB_BANDWIDTH_SQUEEZE in analyze._bb_bandwidth_state).
+    out["bandwidth_pct20"] = out["bandwidth"].rolling(window=250, min_periods=60).quantile(0.20)
+    out["bandwidth_pct05"] = out["bandwidth"].rolling(window=250, min_periods=60).quantile(0.05)
 
     return out
 
@@ -109,6 +114,15 @@ def detect_rsi_divergence(df: pd.DataFrame) -> Divergence | None:
     """RSI variant of detect_divergence — same peak/valley logic on the
     `rsi` column instead of `dif`."""
     return _detect_divergence_for(df, "rsi", source="rsi")
+
+
+def detect_bb_divergence(df: pd.DataFrame) -> Divergence | None:
+    """Bollinger %B variant of detect_divergence — peaks/valleys on percent_b.
+
+    %B captures price position normalized to the band range, so divergence
+    against close is a clean momentum-vs-position signal independent of MACD.
+    """
+    return _detect_divergence_for(df, "percent_b", source="bb")
 
 
 def _detect_divergence_for(

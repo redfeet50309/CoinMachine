@@ -297,15 +297,58 @@ def _bb_percent_b_zone(today: pd.Series) -> str:
 
 
 def _bb_bandwidth_state(today: pd.Series) -> str:
-    """Bandwidth classification: <0.03 極度收斂 / <0.10 收斂 / else 正常."""
+    """Bandwidth classification with per-stock adaptive thresholds.
+
+    Uses 250-day rolling p20/p05 of this stock's bandwidth when available
+    (needs ≥60 days of warmup), else falls back to the global 0.10/0.03
+    thresholds. The per-stock approach prevents low-vol stocks (whose
+    bandwidth is always ~0.05) from never registering as "收斂".
+    """
     bw = today.get("bandwidth")
     if bw is None or pd.isna(bw):
         return "資料不足"
+    pct20 = today.get("bandwidth_pct20")
+    pct05 = today.get("bandwidth_pct05")
+    if pct20 is not None and not pd.isna(pct20) and pct05 is not None and not pd.isna(pct05):
+        if bw < pct05:
+            return "極度收斂 (個股 p5)"
+        if bw < pct20:
+            return "收斂 (個股 p20)"
+        return "正常"
+    # Fallback to global thresholds (early history, ≤60 bars of bandwidth)
     if bw < BB_BANDWIDTH_EXTREME:
         return "極度收斂"
     if bw < BB_BANDWIDTH_SQUEEZE:
         return "收斂"
     return "正常"
+
+
+def _bb_range_strategy(today: pd.Series, signals: dict[str, Any]) -> str | None:
+    """Range-trading signal: when MA arrangement is consolidating and BB is
+    NOT in squeeze mode (meaning bands still meaningful as S/R), fire entry
+    near the bands.
+
+    Mutually exclusive with bb_cross — if a cross fired today, prefer that
+    (the price already broke the band; it's no longer a bounce point).
+    """
+    if signals.get("bb_cross"):
+        return None
+    spread = signals.get("ma_spread_state")
+    if spread not in ("糾結", "普通"):
+        return None
+    bw_state = signals.get("bb_bandwidth_state")
+    # squeeze → expect breakout, not reversal — don't fire range strategy
+    if bw_state is None or "收斂" in bw_state:
+        return None
+
+    pb = today.get("percent_b")
+    if pb is None or pd.isna(pb):
+        return None
+    if pb <= 0.15:
+        return "區間做多 (下軌支撐)"
+    if pb >= 0.85:
+        return "區間做空 (上軌壓力)"
+    return None
 
 
 def _divergence_label(div: Divergence | None, df: pd.DataFrame) -> str | None:
@@ -321,6 +364,7 @@ def analyze(
     df: pd.DataFrame,
     macd_divergence: Divergence | None,
     rsi_divergence: Divergence | None = None,
+    bb_divergence: Divergence | None = None,
 ) -> dict[str, Any]:
     """Return latest signals dict + alerts list.
 
@@ -356,8 +400,11 @@ def analyze(
         "bb_cross": _bb_cross(today, yesterday) if len(df) >= 2 else None,
         "bb_percent_b_zone": _bb_percent_b_zone(today),
         "bb_bandwidth_state": _bb_bandwidth_state(today),
+        "bb_range_strategy": None,  # filled below — depends on bb_cross/ma_spread/bandwidth
+        "bb_divergence": _divergence_label(bb_divergence, df),
     }
     signals["rsi_strategy"] = _rsi_reversal_strategy(df, signals)
+    signals["bb_range_strategy"] = _bb_range_strategy(today, signals)
 
     alerts: list[str] = []
     if signals["ma_cross"]:
@@ -378,7 +425,11 @@ def analyze(
         alerts.append(f"今日：{signals['rsi_strategy']}")
     if signals["bb_cross"]:
         alerts.append(f"今日：布林 {signals['bb_cross']}")
-    if signals["bb_bandwidth_state"] == "極度收斂":
+    if signals["bb_bandwidth_state"] and "極度收斂" in signals["bb_bandwidth_state"]:
         alerts.append("布林通道極度收斂 (即將變盤)")
+    if signals["bb_range_strategy"]:
+        alerts.append(f"今日：{signals['bb_range_strategy']}")
+    if signals["bb_divergence"] and not signals["bb_divergence"].startswith("近期"):
+        alerts.append(f"今日：布林 {signals['bb_divergence']}")
 
     return {"signals": signals, "alerts": alerts}
