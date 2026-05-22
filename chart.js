@@ -54,6 +54,20 @@ window.ChartLib = (function () {
       series.setData(recent.filter(d => d[key] != null).map(d => ({ time: d.date, value: d[key] })));
     }
 
+    // Bollinger upper/lower as dotted overlays. Middle band is skipped — it
+    // coincides with ma20 which is already drawn above.
+    const bbStyle = {
+      color: '#90a4ae',
+      lineWidth: 1,
+      lineStyle: 2, // LineStyle.Dashed
+      priceLineVisible: false,
+      lastValueVisible: false,
+    };
+    const bbUpper = priceChart.addLineSeries({ ...bbStyle, title: 'BB Upper' });
+    bbUpper.setData(recent.filter(d => d.bb_upper != null).map(d => ({ time: d.date, value: d.bb_upper })));
+    const bbLower = priceChart.addLineSeries({ ...bbStyle, title: 'BB Lower' });
+    bbLower.setData(recent.filter(d => d.bb_lower != null).map(d => ({ time: d.date, value: d.bb_lower })));
+
     priceChart.timeScale().fitContent();
 
     const macdChart = LightweightCharts.createChart(macdEl, {

@@ -8,10 +8,10 @@
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E📈%3C/text%3E%3C/svg%3E">
   <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
-  <script defer src="rules.js?v=7"></script>
-  <script defer src="api.js?v=7"></script>
-  <script defer src="chart.js?v=7"></script>
-  <script defer src="app.js?v=7"></script>
+  <script defer src="rules.js?v=8"></script>
+  <script defer src="api.js?v=8"></script>
+  <script defer src="chart.js?v=8"></script>
+  <script defer src="app.js?v=8"></script>
   <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body x-data="appComponent()" x-init="init()">
@@ -126,6 +126,27 @@
             </div>
             <div class="macd-row">
               <div><span class="label">RSI(14)</span><span x-text="formatNum(card.data.latest.rsi?.value)"></span></div>
+            </div>
+          </section>
+
+          <section class="block" x-show="card.data.latest.bb">
+            <h3>布林通道 BB(20, 2σ)</h3>
+            <div class="badges">
+              <span class="badge" :class="bbClass(card.data.latest.bb?.zone)"
+                    x-text="card.data.latest.bb?.zone"></span>
+              <span class="badge cross" x-show="card.data.latest.bb?.cross"
+                    x-text="card.data.latest.bb?.cross"></span>
+              <span class="badge" :class="bbClass(card.data.latest.bb?.percent_b_zone)"
+                    x-text="card.data.latest.bb?.percent_b_zone"></span>
+              <span class="badge" :class="bbClass(card.data.latest.bb?.bandwidth_state)"
+                    x-text="card.data.latest.bb?.bandwidth_state"></span>
+            </div>
+            <div class="macd-row">
+              <div><span class="label">上軌</span><span x-text="formatPrice(card.data.latest.bb?.upper)"></span></div>
+              <div><span class="label">中軌</span><span x-text="formatPrice(card.data.latest.bb?.middle)"></span></div>
+              <div><span class="label">下軌</span><span x-text="formatPrice(card.data.latest.bb?.lower)"></span></div>
+              <div><span class="label">%B</span><span x-text="formatPercent(card.data.latest.bb?.percent_b)"></span></div>
+              <div><span class="label">帶寬</span><span x-text="formatNum(card.data.latest.bb?.bandwidth)"></span></div>
             </div>
           </section>
 

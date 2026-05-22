@@ -17,6 +17,9 @@ import pandas as pd
 from scipy.signal import find_peaks
 
 from config import (
+    BB_PERIOD,
+    BB_STD_DDOF,
+    BB_STD_MULT,
     DIVERGENCE_LOOKBACK,
     DIVERGENCE_MIN_PEAK_GAP,
     DIVERGENCE_PRICE_PCT,
@@ -56,6 +59,17 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     out["osc"] = out["dif"] - out["macd"]
 
     out["rsi"] = compute_rsi(close, period=RSI_PERIOD)
+
+    # Bollinger Bands: 20-period SMA ± 2σ (population std to match TradingView).
+    bb_mid = close.rolling(window=BB_PERIOD, min_periods=BB_PERIOD).mean()
+    bb_std = close.rolling(window=BB_PERIOD, min_periods=BB_PERIOD).std(ddof=BB_STD_DDOF)
+    out["bb_middle"] = bb_mid
+    out["bb_upper"] = bb_mid + BB_STD_MULT * bb_std
+    out["bb_lower"] = bb_mid - BB_STD_MULT * bb_std
+    bb_range = out["bb_upper"] - out["bb_lower"]
+    # Guard against zero band-range (constant series) → NaN instead of div-by-zero.
+    out["percent_b"] = (close - out["bb_lower"]) / bb_range.where(bb_range != 0)
+    out["bandwidth"] = bb_range / bb_mid.where(bb_mid != 0)
 
     return out
 

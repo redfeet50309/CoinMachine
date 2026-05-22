@@ -213,6 +213,17 @@ def update_stock(
             "divergence": result["signals"].get("rsi_divergence"),
             "strategy": result["signals"].get("rsi_strategy"),
         },
+        "bb": {
+            "upper": _safe_float(today.get("bb_upper")),
+            "middle": _safe_float(today.get("bb_middle")),
+            "lower": _safe_float(today.get("bb_lower")),
+            "percent_b": _safe_float(today.get("percent_b")),
+            "bandwidth": _safe_float(today.get("bandwidth")),
+            "zone": result["signals"].get("bb_zone"),
+            "cross": result["signals"].get("bb_cross"),
+            "percent_b_zone": result["signals"].get("bb_percent_b_zone"),
+            "bandwidth_state": result["signals"].get("bb_bandwidth_state"),
+        },
         "signals": result["signals"],
         "alerts": result["alerts"],
     }
@@ -233,6 +244,11 @@ def update_stock(
             "macd": _safe_float(row.get("macd")),
             "osc": _safe_float(row.get("osc")),
             "rsi": _safe_float(row.get("rsi")),
+            "bb_upper": _safe_float(row.get("bb_upper")),
+            "bb_middle": _safe_float(row.get("bb_middle")),
+            "bb_lower": _safe_float(row.get("bb_lower")),
+            "percent_b": _safe_float(row.get("percent_b")),
+            "bandwidth": _safe_float(row.get("bandwidth")),
         }
         for _, row in df_keep.iterrows()
     ]

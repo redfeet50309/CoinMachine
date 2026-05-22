@@ -8,7 +8,7 @@ WATCHLIST_FILE = DATA_DIR / "watchlist.json"
 INDEX_FILE = DATA_DIR / "index.json"
 META_FILE = DATA_DIR / "meta.json"
 
-RULE_VERSION = "v1.0.0"
+RULE_VERSION = "v1.1.0"
 SCHEMA_VERSION = 1
 
 TWSE_ENDPOINT = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
@@ -42,6 +42,15 @@ RSI_NUMB_BARS = 3              # min consecutive bars in OB/OS zone to count as 
 RSI_NUMB_PRICE_LOOKBACK = 5    # close must be new high/low across this window
 RSI_PULLBACK_LOW = 50          # long-entry RSI upper bound (30 <= rsi <= 50)
 RSI_BOUNCE_HIGH = 50           # short-entry RSI lower bound (50 <= rsi <= 70)
+
+# Bollinger Bands (see plan: bollinger-bands-expressive-lynx.md)
+BB_PERIOD = 20
+BB_STD_MULT = 2.0
+BB_STD_DDOF = 0                # population std — matches TradingView / 多數券商
+BB_PERCENT_B_HIGH = 0.80
+BB_PERCENT_B_LOW = 0.20
+BB_BANDWIDTH_SQUEEZE = 0.10
+BB_BANDWIDTH_EXTREME = 0.03
 
 WATCHLIST_MAX_STOCKS = 30      # frontend addStock guard; backend doesn't enforce
 

@@ -7,6 +7,10 @@ from typing import Any
 import pandas as pd
 
 from config import (
+    BB_BANDWIDTH_EXTREME,
+    BB_BANDWIDTH_SQUEEZE,
+    BB_PERCENT_B_HIGH,
+    BB_PERCENT_B_LOW,
     MA_CLUSTER_DAYS,
     MA_CLUSTER_PCT,
     MA_CROSS_TREND_LOOKBACK,
@@ -229,6 +233,81 @@ def _rsi_reversal_strategy(df: pd.DataFrame, signals: dict[str, Any]) -> str | N
     return None
 
 
+def _bb_zone(today: pd.Series) -> str:
+    """Positional state of today's close relative to the Bollinger Bands."""
+    close = today.get("close")
+    upper, mid, lower = today.get("bb_upper"), today.get("bb_middle"), today.get("bb_lower")
+    if any(pd.isna(x) for x in (close, upper, mid, lower)):
+        return "資料不足"
+    if close > upper:
+        return "上軌之上"
+    if close > mid:
+        return "多頭區間"
+    if close >= lower:
+        return "空頭區間"
+    return "下軌之下"
+
+
+def _bb_cross(today: pd.Series, yesterday: pd.Series) -> str | None:
+    """Single highest-priority Bollinger cross event for today.
+
+    Priority (one signal only):
+      1 突破上軌 (強多)   — yest ≤ upper AND today > upper
+      2 跌破下軌 (強空)   — yest ≥ lower AND today < lower
+      3 上穿中軌 (買進)   — yest ≤ mid AND today > mid
+      4 下穿中軌 (放空)   — yest ≥ mid AND today < mid
+      5 上穿下軌 (空頭轉弱) — yest < lower AND today ≥ lower
+      6 下穿上軌 (多頭轉弱) — yest > upper AND today ≤ upper
+    """
+    tc, yc = today.get("close"), yesterday.get("close")
+    tu, tm, tl = today.get("bb_upper"), today.get("bb_middle"), today.get("bb_lower")
+    yu, ym, yl = yesterday.get("bb_upper"), yesterday.get("bb_middle"), yesterday.get("bb_lower")
+    if any(pd.isna(x) for x in (tc, yc, tu, tm, tl, yu, ym, yl)):
+        return None
+
+    if yc <= yu and tc > tu:
+        return "突破上軌 (強多)"
+    if yc >= yl and tc < tl:
+        return "跌破下軌 (強空)"
+    if yc <= ym and tc > tm:
+        return "上穿中軌 (買進)"
+    if yc >= ym and tc < tm:
+        return "下穿中軌 (放空)"
+    if yc < yl and tc >= tl:
+        return "上穿下軌 (空頭轉弱)"
+    if yc > yu and tc <= tu:
+        return "下穿上軌 (多頭轉弱)"
+    return None
+
+
+def _bb_percent_b_zone(today: pd.Series) -> str:
+    """%B classification: <0 / 0–20% / 20–80% / 80–100% / >100%."""
+    pb = today.get("percent_b")
+    if pb is None or pd.isna(pb):
+        return "資料不足"
+    if pb > 1.0:
+        return "超強多 (>100%)"
+    if pb >= BB_PERCENT_B_HIGH:
+        return "多頭 (≥80%)"
+    if pb > BB_PERCENT_B_LOW:
+        return "中性"
+    if pb >= 0.0:
+        return "空頭 (≤20%)"
+    return "超強空 (<0%)"
+
+
+def _bb_bandwidth_state(today: pd.Series) -> str:
+    """Bandwidth classification: <0.03 極度收斂 / <0.10 收斂 / else 正常."""
+    bw = today.get("bandwidth")
+    if bw is None or pd.isna(bw):
+        return "資料不足"
+    if bw < BB_BANDWIDTH_EXTREME:
+        return "極度收斂"
+    if bw < BB_BANDWIDTH_SQUEEZE:
+        return "收斂"
+    return "正常"
+
+
 def _divergence_label(div: Divergence | None, df: pd.DataFrame) -> str | None:
     if not div:
         return None
@@ -273,6 +352,10 @@ def analyze(
         "rsi_numbing": _rsi_numbing(df),
         "rsi_divergence": _divergence_label(rsi_divergence, df),
         "rsi_strategy": None,  # filled below — depends on macd_zone/macd_cross
+        "bb_zone": _bb_zone(today),
+        "bb_cross": _bb_cross(today, yesterday) if len(df) >= 2 else None,
+        "bb_percent_b_zone": _bb_percent_b_zone(today),
+        "bb_bandwidth_state": _bb_bandwidth_state(today),
     }
     signals["rsi_strategy"] = _rsi_reversal_strategy(df, signals)
 
@@ -293,5 +376,9 @@ def analyze(
         alerts.append(f"RSI {signals['rsi_numbing']} (強勢可改用 80/20)")
     if signals["rsi_strategy"]:
         alerts.append(f"今日：{signals['rsi_strategy']}")
+    if signals["bb_cross"]:
+        alerts.append(f"今日：布林 {signals['bb_cross']}")
+    if signals["bb_bandwidth_state"] == "極度收斂":
+        alerts.append("布林通道極度收斂 (即將變盤)")
 
     return {"signals": signals, "alerts": alerts}

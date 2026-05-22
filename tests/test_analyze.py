@@ -14,6 +14,10 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from analyze import (  # noqa: E402
+    _bb_bandwidth_state,
+    _bb_cross,
+    _bb_percent_b_zone,
+    _bb_zone,
     _direction_streak,
     _ma_cross,
     _ma_trend,
@@ -389,3 +393,202 @@ def test_analyze_macd_cross_emits_alert():
     out = analyze(_build_df(rows), None)
     assert out["signals"]["macd_cross"] == "黃金交叉 (強)"
     assert any("MACD 黃金交叉" in a for a in out["alerts"])
+
+
+# ---------- _bb_zone ----------
+
+def _bb_row(close, upper=110, mid=100, lower=90):
+    return _row(close=close, bb_upper=upper, bb_middle=mid, bb_lower=lower)
+
+
+def test_bb_zone_above_upper():
+    assert _bb_zone(_bb_row(115)) == "上軌之上"
+
+
+def test_bb_zone_bull_range():
+    assert _bb_zone(_bb_row(105)) == "多頭區間"
+
+
+def test_bb_zone_bear_range():
+    assert _bb_zone(_bb_row(95)) == "空頭區間"
+
+
+def test_bb_zone_below_lower():
+    assert _bb_zone(_bb_row(85)) == "下軌之下"
+
+
+def test_bb_zone_on_middle_falls_to_bear():
+    # close == middle goes to "空頭區間" (close > mid is False, close >= lower is True)
+    assert _bb_zone(_bb_row(100)) == "空頭區間"
+
+
+def test_bb_zone_data_insufficient():
+    assert _bb_zone(_row(close=100, bb_upper=float("nan"), bb_middle=100, bb_lower=90)) == "資料不足"
+
+
+# ---------- _bb_cross ----------
+
+def _bb_pair(yc, tc, upper=110, mid=100, lower=90):
+    today = _row(close=tc, bb_upper=upper, bb_middle=mid, bb_lower=lower)
+    yest = _row(close=yc, bb_upper=upper, bb_middle=mid, bb_lower=lower)
+    return today, yest
+
+
+def test_bb_cross_break_upper_strong_bull():
+    today, yest = _bb_pair(yc=109, tc=111)
+    assert _bb_cross(today, yest) == "突破上軌 (強多)"
+
+
+def test_bb_cross_break_lower_strong_bear():
+    today, yest = _bb_pair(yc=91, tc=89)
+    assert _bb_cross(today, yest) == "跌破下軌 (強空)"
+
+
+def test_bb_cross_up_through_middle():
+    today, yest = _bb_pair(yc=99, tc=101)
+    assert _bb_cross(today, yest) == "上穿中軌 (買進)"
+
+
+def test_bb_cross_down_through_middle():
+    today, yest = _bb_pair(yc=101, tc=99)
+    assert _bb_cross(today, yest) == "下穿中軌 (放空)"
+
+
+def test_bb_cross_up_through_lower():
+    # yest was BELOW lower, today >= lower (but still < middle)
+    today, yest = _bb_pair(yc=89, tc=91)
+    assert _bb_cross(today, yest) == "上穿下軌 (空頭轉弱)"
+
+
+def test_bb_cross_down_through_upper():
+    today, yest = _bb_pair(yc=111, tc=109)
+    assert _bb_cross(today, yest) == "下穿上軌 (多頭轉弱)"
+
+
+def test_bb_cross_no_event():
+    # both days well inside the bull range, no boundary crossed
+    today, yest = _bb_pair(yc=104, tc=105)
+    assert _bb_cross(today, yest) is None
+
+
+def test_bb_cross_priority_gap_up_breaks_upper():
+    # Big gap from below lower past upper. Multiple crosses satisfied;
+    # 突破上軌 has top priority.
+    today, yest = _bb_pair(yc=85, tc=115)
+    assert _bb_cross(today, yest) == "突破上軌 (強多)"
+
+
+def test_bb_cross_priority_gap_down_breaks_lower():
+    today, yest = _bb_pair(yc=115, tc=85)
+    assert _bb_cross(today, yest) == "跌破下軌 (強空)"
+
+
+def test_bb_cross_data_insufficient_returns_none():
+    today, yest = _bb_pair(yc=99, tc=101, upper=float("nan"))
+    assert _bb_cross(today, yest) is None
+
+
+# ---------- _bb_percent_b_zone ----------
+
+def test_bb_percent_b_super_bull_over_100():
+    assert _bb_percent_b_zone(_row(percent_b=1.05)) == "超強多 (>100%)"
+
+
+def test_bb_percent_b_bull_80_to_100():
+    assert _bb_percent_b_zone(_row(percent_b=0.85)) == "多頭 (≥80%)"
+
+
+def test_bb_percent_b_neutral_middle_range():
+    assert _bb_percent_b_zone(_row(percent_b=0.5)) == "中性"
+
+
+def test_bb_percent_b_bear_below_20():
+    assert _bb_percent_b_zone(_row(percent_b=0.10)) == "空頭 (≤20%)"
+
+
+def test_bb_percent_b_super_bear_negative():
+    assert _bb_percent_b_zone(_row(percent_b=-0.05)) == "超強空 (<0%)"
+
+
+def test_bb_percent_b_boundary_at_80_is_bull():
+    assert _bb_percent_b_zone(_row(percent_b=0.80)) == "多頭 (≥80%)"
+
+
+def test_bb_percent_b_boundary_at_20_is_neutral_strict():
+    # > 0.20 is neutral; == 0.20 falls into bear band
+    assert _bb_percent_b_zone(_row(percent_b=0.20)) == "空頭 (≤20%)"
+
+
+def test_bb_percent_b_data_insufficient():
+    assert _bb_percent_b_zone(_row(percent_b=float("nan"))) == "資料不足"
+
+
+# ---------- _bb_bandwidth_state ----------
+
+def test_bb_bandwidth_extreme_squeeze():
+    assert _bb_bandwidth_state(_row(bandwidth=0.02)) == "極度收斂"
+
+
+def test_bb_bandwidth_squeeze():
+    assert _bb_bandwidth_state(_row(bandwidth=0.07)) == "收斂"
+
+
+def test_bb_bandwidth_normal():
+    assert _bb_bandwidth_state(_row(bandwidth=0.15)) == "正常"
+
+
+def test_bb_bandwidth_data_insufficient():
+    assert _bb_bandwidth_state(_row(bandwidth=float("nan"))) == "資料不足"
+
+
+# ---------- analyze (BB integration) ----------
+
+def test_analyze_bb_keys_present_with_data():
+    rows = [
+        {"close": 99, "ma5": 100, "ma20": 100, "ma60": 100,
+         "dif": 0, "macd": 0, "osc": 0, "rsi": 50,
+         "bb_upper": 110, "bb_middle": 100, "bb_lower": 90,
+         "percent_b": 0.45, "bandwidth": 0.20},
+        {"close": 101, "ma5": 100, "ma20": 100, "ma60": 100,
+         "dif": 0, "macd": 0, "osc": 0, "rsi": 50,
+         "bb_upper": 110, "bb_middle": 100, "bb_lower": 90,
+         "percent_b": 0.55, "bandwidth": 0.20},
+    ]
+    out = analyze(_build_df(rows), None)
+    sig = out["signals"]
+    assert sig["bb_zone"] == "多頭區間"
+    assert sig["bb_cross"] == "上穿中軌 (買進)"
+    assert sig["bb_percent_b_zone"] == "中性"
+    assert sig["bb_bandwidth_state"] == "正常"
+    assert any("布林 上穿中軌" in a for a in out["alerts"])
+
+
+def test_analyze_bb_squeeze_alert():
+    rows = [
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100,
+         "dif": 0, "macd": 0, "osc": 0, "rsi": 50,
+         "bb_upper": 100.5, "bb_middle": 100, "bb_lower": 99.5,
+         "percent_b": 0.5, "bandwidth": 0.01},
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100,
+         "dif": 0, "macd": 0, "osc": 0, "rsi": 50,
+         "bb_upper": 100.5, "bb_middle": 100, "bb_lower": 99.5,
+         "percent_b": 0.5, "bandwidth": 0.01},
+    ]
+    out = analyze(_build_df(rows), None)
+    assert out["signals"]["bb_bandwidth_state"] == "極度收斂"
+    assert any("極度收斂" in a for a in out["alerts"])
+
+
+def test_analyze_bb_missing_columns_returns_data_insufficient():
+    # Existing minimum_signals_present test omits bb_* — verify graceful degrade.
+    rows = [
+        {"close": 100, "ma5": 100, "ma20": 100, "ma60": 100,
+         "dif": 0.5, "macd": 0.3, "osc": 0.2, "rsi": 50},
+        {"close": 101, "ma5": 101, "ma20": 100.5, "ma60": 100,
+         "dif": 0.6, "macd": 0.4, "osc": 0.2, "rsi": 55},
+    ]
+    out = analyze(_build_df(rows), None)
+    assert out["signals"]["bb_zone"] == "資料不足"
+    assert out["signals"]["bb_cross"] is None
+    assert out["signals"]["bb_percent_b_zone"] == "資料不足"
+    assert out["signals"]["bb_bandwidth_state"] == "資料不足"

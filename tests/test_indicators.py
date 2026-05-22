@@ -190,3 +190,88 @@ def test_detect_rsi_divergence_runs_on_realistic_series():
     assert result is None or result.kind in ("top", "bottom")
     if result:
         assert result.source == "rsi"
+
+
+# ---------- Bollinger Bands ----------
+
+def test_bollinger_columns_present():
+    df = _df([float(c) for c in range(1, 50)])
+    out = compute_indicators(df)
+    for col in ("bb_upper", "bb_middle", "bb_lower", "percent_b", "bandwidth"):
+        assert col in out.columns
+
+
+def test_bollinger_warmup_nan():
+    """First BB_PERIOD-1 rows have NaN bands; row at index BB_PERIOD-1 is the first value."""
+    df = _df([float(c) for c in range(1, 30)])
+    out = compute_indicators(df)
+    assert pd.isna(out["bb_middle"].iloc[18])
+    assert not pd.isna(out["bb_middle"].iloc[19])
+    assert not pd.isna(out["bb_upper"].iloc[19])
+    assert not pd.isna(out["bb_lower"].iloc[19])
+
+
+def test_bollinger_constant_series_collapses():
+    """Constant price → std=0 → upper=middle=lower; %B is NaN (div-by-zero guard)."""
+    df = _df([100.0] * 25)
+    out = compute_indicators(df)
+    assert out["bb_middle"].iloc[-1] == pytest.approx(100.0)
+    assert out["bb_upper"].iloc[-1] == pytest.approx(100.0)
+    assert out["bb_lower"].iloc[-1] == pytest.approx(100.0)
+    assert out["bandwidth"].iloc[-1] == pytest.approx(0.0)
+    assert pd.isna(out["percent_b"].iloc[-1])
+
+
+def test_bollinger_middle_equals_ma20():
+    """BB_PERIOD = 20 — bb_middle must equal ma20 row-by-row."""
+    df = _df([float(c) for c in range(1, 50)])
+    out = compute_indicators(df)
+    valid = out["bb_middle"].notna()
+    np.testing.assert_allclose(
+        out.loc[valid, "bb_middle"].to_numpy(),
+        out.loc[valid, "ma20"].to_numpy(),
+        rtol=1e-12,
+    )
+
+
+def test_bollinger_bands_symmetric_around_middle():
+    """Upper - middle should equal middle - lower (both = 2σ)."""
+    df = _df([float(c) for c in range(1, 50)])
+    out = compute_indicators(df)
+    row = out.iloc[-1]
+    upper_gap = row["bb_upper"] - row["bb_middle"]
+    lower_gap = row["bb_middle"] - row["bb_lower"]
+    assert upper_gap == pytest.approx(lower_gap, rel=1e-12)
+
+
+def test_bollinger_uses_population_std():
+    """Verify ddof=0 (population) vs ddof=1 (sample). Linear 1..30, last row's
+    bb is computed from closes 11..30 (20 values). Population σ of 11..30 is
+    sqrt(sum((x - mean)^2) / 20), not /19."""
+    closes = list(range(1, 31))
+    df = _df([float(c) for c in closes])
+    out = compute_indicators(df)
+    window = pd.Series(closes[-20:], dtype=float)
+    expected_mid = float(window.mean())
+    expected_std_pop = float(window.std(ddof=0))
+    assert out["bb_middle"].iloc[-1] == pytest.approx(expected_mid, rel=1e-12)
+    assert out["bb_upper"].iloc[-1] == pytest.approx(expected_mid + 2 * expected_std_pop, rel=1e-12)
+    assert out["bb_lower"].iloc[-1] == pytest.approx(expected_mid - 2 * expected_std_pop, rel=1e-12)
+
+
+def test_percent_b_formula():
+    """%B = (close - lower) / (upper - lower), verified row-by-row."""
+    df = _df([float(c) for c in range(1, 50)])
+    out = compute_indicators(df)
+    row = out.iloc[-1]
+    expected = (row["close"] - row["bb_lower"]) / (row["bb_upper"] - row["bb_lower"])
+    assert row["percent_b"] == pytest.approx(expected, rel=1e-12)
+
+
+def test_bandwidth_formula():
+    """Bandwidth = (upper - lower) / middle, verified row-by-row."""
+    df = _df([float(c) for c in range(1, 50)])
+    out = compute_indicators(df)
+    row = out.iloc[-1]
+    expected = (row["bb_upper"] - row["bb_lower"]) / row["bb_middle"]
+    assert row["bandwidth"] == pytest.approx(expected, rel=1e-12)
