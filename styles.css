@@ -6,19 +6,19 @@
  * single :root edit. chart.js reads these via getComputedStyle.
  * ============================================================ */
 :root {
-  /* surfaces & text */
-  --bg: #2D3239;
-  --surface: #363B43;
-  --surface-2: #3F454D;
-  --border: #4A5058;
-  --text: #D8D2C7;
-  --text-dim: #BAB0A0;       /* 暖灰(原 #9A9389 失 AA),提亮一階以通過 4.5:1 在三種背景 */
+  /* surfaces & text — 整體向霧霾藍家族收斂(冷化 bg/surface,中性化 text-dim) */
+  --bg: #272D38;
+  --surface: #323845;
+  --surface-2: #3C434F;
+  --border: #4A5062;
+  --text: #D8D2C7;           /* 主文保留暖白 — Morandi 經典冷暗 + 暖明對比 */
+  --text-dim: #B0AFAA;       /* 中性灰(原 #BAB0A0 太暖,與霧霾藍打架) */
 
   /* semantic */
   --accent: #7FA0B0;          /* 霧霾藍 */
   --accent-soft: #9DB5C2;
-  --bull: #B68B7E;            /* 磚玫紅 (漲) */
-  --bear: #8DA293;            /* 苔綠 (跌) */
+  --bull: #B68B7E;            /* 磚玫紅 (漲) — 暖色,刻意對比冷藍基底 */
+  --bear: #88A2A0;            /* 青苔色 (跌) — 從暖中性綠 #8DA293 拉向 cyan,與霧霾藍同家族 */
   --warn: #C9B89B;            /* 暖沙黃 */
   --diverge: #A89DBA;         /* 灰紫 */
   --neutral: #7A8089;
@@ -28,9 +28,9 @@
   --bull-soft: rgba(182, 139, 126, 0.18);
   --bull-bd:   rgba(182, 139, 126, 0.40);
   --bull-text: #E6BFB4;
-  --bear-soft: rgba(141, 162, 147, 0.18);
-  --bear-bd:   rgba(141, 162, 147, 0.40);
-  --bear-text: #BFD3C5;
+  --bear-soft: rgba(136, 162, 160, 0.18);
+  --bear-bd:   rgba(136, 162, 160, 0.40);
+  --bear-text: #BAD1D1;
   --warn-soft: rgba(201, 184, 155, 0.14);
   --warn-bd:   rgba(201, 184, 155, 0.40);
   --warn-text: #EBDFC2;       /* 加亮一階(原 E0D5BB),提升 alert / warning 文字對比 */
