@@ -1,6 +1,6 @@
 # CoinMachine
 
-個人自用的台股技術指標追蹤網站。每晚 23:30 自動從 TWSE / TPEx 官方資料抓取自選股，計算 MA / MACD，給出文字化判讀（多/空、交叉、發散、背離）。
+個人自用的台股技術指標追蹤網站。每晚 22:00 自動從 TWSE / TPEx 官方資料抓取自選股，計算 MA / MACD / RSI / 布林通道 / 量價關係，給出文字化判讀,並 push 一則 LINE 訊息彙整當日訊號。
 
 **所有數據來自官方一手來源，公式透明可驗證。**
 
@@ -24,7 +24,8 @@
   - 紅綠柱加速 / 減弱（連續 3 根趨勢）
   - 頂背離 / 底背離（近 60 日峰谷比對）
 - **K 線圖**：點卡片展開後顯示近 90 日 K 線 + MA 5/20/60 + MACD 副圖
-- **自動排程**：Windows Task Scheduler，週一到週五每晚 23:30 跑批（從本地電腦抓資料，自動 push 到 repo）
+- **自動排程**：Windows Task Scheduler,週一到週五每晚 22:00 跑批(從本地電腦抓資料,自動 push 到 repo)
+- **LINE 通知**:跑完後自動推一則彙整訊息(分注意 / 進場 / 空頭 / 無事件 4 類,連續日標「連N日」)
 
 ## 資料來源
 
@@ -83,7 +84,7 @@ CoinMachine/
     └── pages.yml                # GitHub Pages 部署 (網頁更新)
 ```
 
-每晚 23:30 的資料抓取由本機 Windows Task Scheduler 觸發（GitHub Actions runner 在美國，TWSE / TPEx 對非台灣 IP 會 geo-block）。
+每晚 22:00 的資料抓取由本機 Windows Task Scheduler 觸發（GitHub Actions runner 在美國，TWSE / TPEx 對非台灣 IP 會 geo-block）。
 
 ## 本機開發
 
@@ -103,21 +104,22 @@ python -m http.server 8000
 # 開 http://localhost:8000/
 ```
 
-## 設定每晚 23:30 自動跑批 (Windows Task Scheduler)
+## 設定每晚 22:00 自動跑批 (Windows Task Scheduler)
 
-TWSE 和 TPEx 都會把美國 IP 的請求 reject (HTTP 404 / Cloudflare 530)，所以 cron 沒辦法跑在 GitHub Actions，要跑在台灣 IP — 也就是你的電腦。
+TWSE 和 TPEx 都會把美國 IP 的請求 reject (HTTP 404 / Cloudflare 530),所以 cron 沒辦法跑在 GitHub Actions,要跑在台灣 IP — 也就是你的電腦。
 
-一次性設定：
+一次性設定:
 
 ```powershell
 # 從 PowerShell 在 repo 根目錄執行
 .\scripts\register_task.ps1
 ```
 
-這會註冊一個 Windows 排程任務 `CoinMachine-daily`，每週一到五 23:30 自動跑：
+這會註冊一個 Windows 排程任務 `CoinMachine-daily`,每週一到五 22:00 自動跑:
 - 喚醒睡眠中的電腦
 - 跑 `python scripts/build_dataset.py`
 - 自動 `git push` 結果到 repo
+- 推一則 LINE 訊息(若已設定 token,見下節)
 
 驗證：
 
@@ -156,11 +158,62 @@ Unregister-ScheduledTask -TaskName 'CoinMachine-daily' -Confirm:$false
 
 PAT 只存在你瀏覽器的 localStorage，沒有送任何伺服器。
 
-## 已知限制 / Phase 2 計畫
+## LINE 通知設定(可選)
 
-- **未還原除權息**：跨除權息日均線會有跳空（Phase 2 整合 MOPS 除權息資料）
-- **僅支援台股**（TWSE + TPEx 上市上櫃）
-- **無通知**：Phase 2 加 Line Notify / Discord webhook 推播重要 alerts
+每天 22:00 跑批完會 push 一則 LINE 訊息彙整全 watchlist 訊號。預設**未設定 token 時自動跳過**(不影響其他流程)。
+
+### 一次性申請
+
+1. 進 [LINE Developers Console](https://developers.line.biz/console/)
+2. **Create Provider** → 取個人名稱即可
+3. **Create Channel** → 選 **Messaging API**
+4. **Basic settings** → 取得 **Channel access token (long-lived)**
+5. **Messaging API tab** → 用手機 LINE 掃 QR code 把 bot 加為朋友
+6. PowerShell 設使用者層級環境變數(persistent,所有 process 都能讀到):
+   ```powershell
+   [System.Environment]::SetEnvironmentVariable('LINE_CHANNEL_ACCESS_TOKEN', '貼上 token', 'User')
+   ```
+7. 開新 PowerShell session 驗證:
+   ```powershell
+   $env:LINE_CHANNEL_ACCESS_TOKEN  # 應顯示 token
+   ```
+
+### 預覽訊息 / dry-run
+
+```powershell
+py scripts/notify.py --dry-run
+```
+會把訊息印到 console、不真的推 LINE。可用 `--date=2026-05-22` 指定日期。
+
+### 訊息格式
+
+```
+📊 CoinMachine 5/22(五) 收盤
+
+━━━ ⚠ 注意 (2) ━━━
+🔴 8299 群聯  +4.1%
+   頂部警訊(連2日)
+...
+
+━━━ 📈 進場 (1) ━━━
+🟢 8039 台虹  +8.6%
+   布林 突破上軌 (強多)
+...
+
+🔗 詳情
+https://redfeet50309.github.io/CoinMachine
+```
+
+採用 LINE Messaging API broadcast endpoint(推給 bot 所有 friends,個人 = 只有你)。
+免費額度 200 則/月,個人用每天 1 則綽綽有餘。
+
+連續日同訊號用 `data/notify_state.json` 追蹤(會 commit 進 repo),訊息會標「連N日」。
+若某日 build 失敗、隔日重跑,連續計數會 reset 重新從 1 開始。
+
+## 已知限制 / Phase 3 計畫
+
+- **未還原除權息**:跨除權息日均線會有跳空(Phase 3 整合 MOPS 除權息資料)
+- **僅支援台股**(TWSE + TPEx 上市上櫃)
 
 ## 免責聲明
 

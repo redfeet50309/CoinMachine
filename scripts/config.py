@@ -1,4 +1,5 @@
 """All thresholds, paths, endpoints in one place."""
+import os
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -7,6 +8,13 @@ STOCKS_DIR = DATA_DIR / "stocks"
 WATCHLIST_FILE = DATA_DIR / "watchlist.json"
 INDEX_FILE = DATA_DIR / "index.json"
 META_FILE = DATA_DIR / "meta.json"
+NOTIFY_STATE_FILE = DATA_DIR / "notify_state.json"
+
+# LINE Messaging API — token from user env var (NEVER commit)
+# Set on Windows: [System.Environment]::SetEnvironmentVariable('LINE_CHANNEL_ACCESS_TOKEN', '...', 'User')
+LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "")
+LINE_BROADCAST_URL = "https://api.line.me/v2/bot/message/broadcast"
+WEBSITE_URL = "https://redfeet50309.github.io/CoinMachine"
 
 RULE_VERSION = "v1.3.0"
 SCHEMA_VERSION = 1

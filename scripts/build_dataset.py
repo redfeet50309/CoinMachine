@@ -475,6 +475,21 @@ def main(argv: list[str] | None = None) -> int:
 
     _write_index(watchlist, results)
     _write_meta(time.time() - started, results, failures)
+
+    # LINE notify is best-effort — never block / fail the build itself.
+    # When run without args (full watchlist sweep), push a daily summary.
+    if not argv:
+        try:
+            from notify import send_daily_summary
+            from config import NOTIFY_STATE_FILE
+            sent = send_daily_summary(
+                WATCHLIST_FILE, STOCKS_DIR, NOTIFY_STATE_FILE,
+                today=date.today(),
+            )
+            log.info("notify: %s", "pushed" if sent else "skipped")
+        except Exception as e:  # noqa: BLE001
+            log.error("notify failed: %s (build itself succeeded)", e)
+
     return 0 if not failures else 1
 
 
