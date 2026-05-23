@@ -24,20 +24,20 @@
   --neutral: #5A6770;         /* 中性深灰 */
   --neutral-dim: #7E8C95;     /* 弱化中性灰 — BB 上下軌,在亮 bg 上才能可見 */
 
-  /* badge soft backgrounds — rgba over --surface #B0C7D3;
-     文字統一加深通過 AA,在 medium-tone bg 下色彩家族無法保留太淡 */
-  --bull-soft: rgba(139, 94, 84, 0.18);
-  --bull-bd:   rgba(139, 94, 84, 0.45);
-  --bull-text: #3D2A22;       /* 加深(原 #5C3A30 在 bg 上的 banner.error 失 AA) */
-  --bear-soft: rgba(79, 113, 110, 0.18);
-  --bear-bd:   rgba(79, 113, 110, 0.45);
-  --bear-text: #2F4A45;       /* 深苔綠 — 已 AA 4.63 */
-  --warn-soft: rgba(139, 116, 86, 0.14);
-  --warn-bd:   rgba(139, 116, 86, 0.45);
-  --warn-text: #3D2E1A;       /* 加深(原 #6E5A3E 失 AA 在 alert / warning / badge) */
-  --diverge-soft: rgba(107, 94, 128, 0.18);
-  --diverge-bd:   rgba(107, 94, 128, 0.45);
-  --diverge-text: #36294A;    /* 加深(原 #4F3E68 4.46 marginal fail) */
+  /* badge backgrounds — SOLID Morandi 粉彩(不是 rgba over surface)
+     避免 medium-tone bg 把 hue 中和掉,讓色相 100% 由 badge 自己定義 */
+  --bull-soft: #D8BCB4;       /* 莫蘭迪粉膚(漲) — 純色,清楚的「紅」識別 */
+  --bull-bd:   #8B5E54;       /* 深磚邊框 — 強化 hue */
+  --bull-text: #3D2A22;       /* 深咖 — AA 9+ on 粉彩 */
+  --bear-soft: #BAC9C2;       /* 莫蘭迪沙苔(跌) */
+  --bear-bd:   #4F716E;
+  --bear-text: #1F3530;       /* 深沼綠 — 加深以對應更亮的 soft bg */
+  --warn-soft: #DBD0BA;       /* 莫蘭迪奶米(警示) */
+  --warn-bd:   #8B7456;
+  --warn-text: #3D2E1A;       /* 深焦糖 */
+  --diverge-soft: #C8C0D3;    /* 莫蘭迪丁香紫(背離) */
+  --diverge-bd:   #6B5E80;
+  --diverge-text: #36294A;    /* 深茄 */
 
   /* radius 三階制 */
   --radius: 14px;             /* 大型卡面 */
