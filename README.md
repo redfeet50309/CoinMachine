@@ -131,7 +131,7 @@ Start-ScheduledTask -TaskName 'CoinMachine-daily'
 Get-Content data\last_run.log -Tail 30
 ```
 
-新增股票後想立刻看到資料（不等到 23:30），手動跑一次：
+新增股票後想立刻看到資料（不等到 22:00），手動跑一次：
 
 ```powershell
 .\scripts\run_local.ps1
@@ -143,7 +143,7 @@ Get-Content data\last_run.log -Tail 30
 Unregister-ScheduledTask -TaskName 'CoinMachine-daily' -Confirm:$false
 ```
 
-> **電腦關機時跑不到**：23:30 時電腦如果是完全關機，當天不會跑。睡眠/休眠都可以被喚醒。如果想跨平台真正 always-on 的方案，可以考慮 self-hosted GitHub Actions runner（架在台灣的 VPS / Raspberry Pi）。
+> **電腦關機時跑不到**：22:00 時電腦如果是完全關機，當天不會跑。睡眠/休眠都可以被喚醒。如果想跨平台真正 always-on 的方案，可以考慮 self-hosted GitHub Actions runner（架在台灣的 VPS / Raspberry Pi）。
 
 ## 自選清單同步（PAT 流程）
 
@@ -154,7 +154,7 @@ Unregister-ScheduledTask -TaskName 'CoinMachine-daily' -Confirm:$false
 3. Permissions → Contents: **Read and write**（其他保持 No access）
 4. 複製 token，到 `settings.html` 貼上
 5. 回主頁，新增 / 移除按鈕會 commit `data/watchlist.json` 進 repo
-6. 新代號的資料會在下次 23:30 排程跑批時被抓進來；想立刻看就在本地跑 `.\scripts\run_local.ps1`
+6. 新代號的資料會在下次 22:00 排程跑批時被抓進來；想立刻看就在本地跑 `.\scripts\run_local.ps1`
 
 PAT 只存在你瀏覽器的 localStorage，沒有送任何伺服器。
 

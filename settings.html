@@ -101,7 +101,7 @@
   <section class="block" style="background: var(--surface); padding: 18px; border-radius: 10px; border: 1px solid var(--border);">
     <h2 style="margin: 0 0 10px;">關於</h2>
     <p style="color: var(--text-dim); margin: 0 0 8px;">
-      <strong>資料來源</strong>：TWSE 證交所 / TPEx 櫃買中心官方 API。每晚 23:30 (台北時間) 由 GitHub Actions 自動抓取並計算指標。
+      <strong>資料來源</strong>：TWSE 證交所 / TPEx 櫃買中心官方 API。每晚 22:00 (台北時間) 由本機 Windows Task Scheduler 自動抓取並計算指標。
     </p>
     <p style="color: var(--text-dim); margin: 0 0 8px;">
       <strong>指標</strong>：MA(5/10/20/60/120/240)、MACD (12/26/9)。EMA 用 pandas 標準遞迴 (adjust=False)。

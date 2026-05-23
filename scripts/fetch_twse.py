@@ -243,11 +243,24 @@ def fetch_month(stock_id: str, market: Market, year: int, month: int) -> list[Ba
     raise ValueError(f"unknown market: {market}")
 
 
-def detect_market(stock_id: str, probe_date: date | None = None) -> Market:
-    """Probe TWSE first; if empty, return TPEx. Caller should cache the result."""
+def detect_market(
+    stock_id: str,
+    probe_date: date | None = None,
+    twse_snapshot: dict[str, Bar] | None = None,
+) -> Market:
+    """Probe TWSE first; if empty, return TPEx. Caller should cache the result.
+
+    When the TWSE legacy month endpoint is in an outage (returns empty for every
+    stock), a real TWSE-listed stock would otherwise misclassify as TPEx and
+    fail. If a snapshot is supplied, we use membership there as a second TWSE
+    signal before falling through to the TPEx probe.
+    """
     d = probe_date or _recent_trading_date()
     twse = fetch_month(stock_id, "TWSE", d.year, d.month)
     if twse:
+        return "TWSE"
+    if twse_snapshot and stock_id in twse_snapshot:
+        log.info("detect_market: %s found via TWSE snapshot (legacy returned empty)", stock_id)
         return "TWSE"
     time.sleep(REQUEST_DELAY_SEC)
     tpex = fetch_month(stock_id, "TPEx", d.year, d.month)

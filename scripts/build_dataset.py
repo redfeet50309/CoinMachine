@@ -136,7 +136,7 @@ def update_stock(
         existing_history = []
 
     if market is None:
-        market = detect_market(stock_id)
+        market = detect_market(stock_id, twse_snapshot=twse_snapshot)
         time.sleep(REQUEST_DELAY_SEC)
 
     fresh: list[Bar] = []
