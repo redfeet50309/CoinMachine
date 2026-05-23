@@ -1,48 +1,49 @@
 /* ============================================================
- * Morandi haze blue palette — dark theme
- * Primary accent: 霧霾藍 #7FA0B0
- * Convention preserved: 紅漲綠跌 via muted brick-rose / sage
- * All colors live as CSS custom properties so theming is a
- * single :root edit. chart.js reads these via getComputedStyle.
+ * Morandi haze blue palette — LIGHT theme
+ * Body bg IS the haze blue #7FA0B0 (user's anchor color).
+ * Cards float above bg as lighter haze tints; text goes dark.
+ * Convention preserved: 紅漲綠跌 via deep brick-rose / deep sage.
+ * Same token names — chart.js reads via getComputedStyle, no JS change needed.
  * ============================================================ */
 :root {
-  /* surfaces & text — 整體向霧霾藍家族收斂(冷化 bg/surface,中性化 text-dim) */
-  --bg: #272D38;
-  --surface: #323845;
-  --surface-2: #3C434F;
-  --border: #4A5062;
-  --text: #D8D2C7;           /* 主文保留暖白 — Morandi 經典冷暗 + 暖明對比 */
-  --text-dim: #B0AFAA;       /* 中性灰(原 #BAB0A0 太暖,與霧霾藍打架) */
+  /* surfaces & text — haze blue is the actual base */
+  --bg: #7FA0B0;             /* body 背景:就是霧霾藍本人 */
+  --surface: #B0C7D3;        /* 卡面 — 比 bg 亮一階,浮起感 */
+  --surface-2: #C8D9E1;      /* 巢狀元素(badge default、ma-cell、macd-row) */
+  --border: #6890A4;         /* 邊框 — 比 bg 略深,定義邊界 */
+  --text: #1A2330;           /* 主文 — 深石板灰,在霧霾藍上 5.69:1 AA */
+  --text-dim: #243140;       /* 加深(原 #374554 fail AA on bg) — 主文層次改靠 size / weight */
 
-  /* semantic */
-  --accent: #7FA0B0;          /* 霧霾藍 */
-  --accent-soft: #9DB5C2;
-  --bull: #B68B7E;            /* 磚玫紅 (漲) — 暖色,刻意對比冷藍基底 */
-  --bear: #88A2A0;            /* 青苔色 (跌) — 從暖中性綠 #8DA293 拉向 cyan,與霧霾藍同家族 */
-  --warn: #C9B89B;            /* 暖沙黃 */
-  --diverge: #A89DBA;         /* 灰紫 */
-  --neutral: #7A8089;
-  --neutral-dim: #5A5F66;     /* 弱化的中性灰 — chart 中 BB 上下軌等次要參考線 */
+  /* semantic — 全部夠深以通過 AA 4.5:1 on bg / surface / surface-2 */
+  --accent: #1F3548;          /* 互動色:深霧霾藍(連結、按鈕、focus、.code 股號)— on bg 4.55 AA */
+  --accent-soft: #2F4A5E;     /* hover / 邊框 — 加深(原 #65869A 失 AA) */
+  --bull: #8B5E54;            /* 深磚玫紅(漲) */
+  --bear: #4F716E;            /* 深苔綠(跌) */
+  --warn: #8B7456;            /* 深沙黃(警訊) */
+  --diverge: #6B5E80;         /* 深灰紫(背離) */
+  --neutral: #5A6770;         /* 中性深灰 */
+  --neutral-dim: #7E8C95;     /* 弱化中性灰 — BB 上下軌,在亮 bg 上才能可見 */
 
-  /* badge soft backgrounds (used by .badge.bull / .bear / .cross / .diverge) */
-  --bull-soft: rgba(182, 139, 126, 0.18);
-  --bull-bd:   rgba(182, 139, 126, 0.40);
-  --bull-text: #E6BFB4;
-  --bear-soft: rgba(136, 162, 160, 0.18);
-  --bear-bd:   rgba(136, 162, 160, 0.40);
-  --bear-text: #BAD1D1;
-  --warn-soft: rgba(201, 184, 155, 0.14);
-  --warn-bd:   rgba(201, 184, 155, 0.40);
-  --warn-text: #EBDFC2;       /* 加亮一階(原 E0D5BB),提升 alert / warning 文字對比 */
-  --diverge-soft: rgba(168, 157, 186, 0.18);
-  --diverge-bd:   rgba(168, 157, 186, 0.40);
-  --diverge-text: #C7BCD8;
+  /* badge soft backgrounds — rgba over --surface #B0C7D3;
+     文字統一加深通過 AA,在 medium-tone bg 下色彩家族無法保留太淡 */
+  --bull-soft: rgba(139, 94, 84, 0.18);
+  --bull-bd:   rgba(139, 94, 84, 0.45);
+  --bull-text: #3D2A22;       /* 加深(原 #5C3A30 在 bg 上的 banner.error 失 AA) */
+  --bear-soft: rgba(79, 113, 110, 0.18);
+  --bear-bd:   rgba(79, 113, 110, 0.45);
+  --bear-text: #2F4A45;       /* 深苔綠 — 已 AA 4.63 */
+  --warn-soft: rgba(139, 116, 86, 0.14);
+  --warn-bd:   rgba(139, 116, 86, 0.45);
+  --warn-text: #3D2E1A;       /* 加深(原 #6E5A3E 失 AA 在 alert / warning / badge) */
+  --diverge-soft: rgba(107, 94, 128, 0.18);
+  --diverge-bd:   rgba(107, 94, 128, 0.45);
+  --diverge-text: #36294A;    /* 加深(原 #4F3E68 4.46 marginal fail) */
 
-  /* radius 三階制(取代散落的 4/6/10/12) */
+  /* radius 三階制 */
   --radius: 14px;             /* 大型卡面 */
   --radius-control: 8px;      /* 按鈕、輸入、banner、小卡片內元素 */
   --radius-pill: 999px;       /* badge / tag */
-  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-soft: 0 1px 3px rgba(26, 35, 48, 0.18);  /* 亮色版陰影改用深色透明 */
 }
 
 * { box-sizing: border-box; }
@@ -150,7 +151,12 @@ a:hover { color: var(--accent-soft); text-decoration: underline; }
   outline-offset: -2px;
 }
 .id-name { display: flex; align-items: baseline; gap: 8px; flex: 1; min-width: 0; }
-.code { font-weight: 700; font-family: ui-monospace, monospace; color: var(--accent); }
+.code {
+  font-weight: 800;             /* 加重(亮版 ID 色不再「最亮藍主角」,用字重補回視覺重量) */
+  letter-spacing: 0.3px;        /* 微擴展讓 ID 仍是 scannable 錨點 */
+  font-family: ui-monospace, monospace;
+  color: var(--accent);
+}
 .name { font-size: 1.05em; }
 .market {
   font-size: 0.7em;
