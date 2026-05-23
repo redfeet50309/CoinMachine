@@ -60,6 +60,12 @@
       "name": "凌航",
       "market": "TWSE",
       "added_at": "2026-05-22"
+    },
+    {
+      "id": "2369",
+      "name": "2369",
+      "market": null,
+      "added_at": "2026-05-23"
     }
   ]
 }
