@@ -33,7 +33,7 @@ from config import (
     WARMUP_MONTHS,
     WATCHLIST_FILE,
 )
-from fetch_twse import Bar, FetchError, detect_market, fetch_history, fetch_month, fetch_twse_latest_all, is_twse_legacy_alive
+from fetch_twse import Bar, FetchError, detect_market, fetch_history, fetch_month, fetch_tpex_latest_all, fetch_twse_latest_all, is_twse_legacy_alive
 
 log = logging.getLogger(__name__)
 TAIPEI_TZ = timezone(timedelta(hours=8))
@@ -117,16 +117,19 @@ def _pick_best_name(
 def update_stock(
     entry: dict,
     twse_snapshot: dict[str, Bar] | None = None,
+    tpex_snapshot: dict[str, Bar] | None = None,
     use_twse_legacy: bool = False,
     force_full: bool = False,
     prefer_existing: bool = False,
 ) -> dict[str, Any]:
     """Update one stock; return result summary for meta tracking.
 
-    TWSE flow has two modes (decided per-run by probing):
-    - legacy alive → fetch_history with per-stock month endpoint (full backfill possible)
-    - legacy dead  → fall back to twse_snapshot (latest trading day only)
-    TPEx always uses per-stock month fetch (its endpoint is stable).
+    Both markets use the same shape now:
+    - TWSE: fetch_history (per-stock month) when legacy is alive, then always
+      append from twse_snapshot. If legacy is dead, snapshot is the only source.
+    - TPEx: fetch_history (per-stock month) for backfill, then always append
+      from tpex_snapshot as a defensive fallback (handles month endpoint flakes
+      and skips a redundant call when only today's bar is missing).
     """
     stock_id = entry["id"]
     market = entry.get("market")
@@ -161,7 +164,19 @@ def update_stock(
         start = _start_date(existing_history)
         end = date.today()
         if start <= end:
-            fresh = fetch_history(stock_id, market, start, end)
+            try:
+                fresh = fetch_history(stock_id, market, start, end)
+            except FetchError:
+                fresh = []
+        # Always also try snapshot in case month endpoint missed today or
+        # flaked. Mirrors the TWSE flow above for architectural consistency.
+        if tpex_snapshot is None:
+            tpex_snapshot = fetch_tpex_latest_all()
+        bar = tpex_snapshot.get(stock_id)
+        if bar is not None:
+            seen = {b.date for b in fresh} | {b["date"] for b in existing_history}
+            if bar.date not in seen:
+                fresh.append(bar)
 
     resolved_name = _pick_best_name(fresh, existing_json, entry, stock_id)
     if resolved_name == stock_id and market is not None:
@@ -380,6 +395,7 @@ def _write_meta(duration: float, results: list[dict], failures: list[dict]) -> N
 def _run_one_pass(
     entries: list[dict],
     twse_snapshot: dict[str, Bar],
+    tpex_snapshot: dict[str, Bar],
     use_twse_legacy: bool,
     prefer_existing: bool = False,
 ) -> tuple[list[dict], list[dict]]:
@@ -396,6 +412,7 @@ def _run_one_pass(
             r = update_stock(
                 entry,
                 twse_snapshot=twse_snapshot,
+                tpex_snapshot=tpex_snapshot,
                 use_twse_legacy=use_twse_legacy,
                 prefer_existing=prefer_existing,
             )
@@ -427,8 +444,10 @@ def main(argv: list[str] | None = None) -> int:
     started = time.time()
 
     has_twse = any(e.get("market") == "TWSE" or e.get("market") is None for e in entries)
+    has_tpex = any(e.get("market") == "TPEx" or e.get("market") is None for e in entries)
     use_twse_legacy = False
     twse_snapshot: dict[str, Bar] = {}
+    tpex_snapshot: dict[str, Bar] = {}
     if has_twse:
         use_twse_legacy = is_twse_legacy_alive()
         log.info("TWSE legacy endpoint: %s", "alive (per-stock month fetch)" if use_twse_legacy else "dead (snapshot fallback)")
@@ -437,8 +456,14 @@ def main(argv: list[str] | None = None) -> int:
             log.info("twse snapshot: %d stocks for latest trading day", len(twse_snapshot))
         except Exception as e:  # noqa: BLE001
             log.error("twse snapshot failed: %s", e)
+    if has_tpex:
+        try:
+            tpex_snapshot = fetch_tpex_latest_all()
+            log.info("tpex snapshot: %d stocks for latest trading day", len(tpex_snapshot))
+        except Exception as e:  # noqa: BLE001
+            log.error("tpex snapshot failed: %s", e)
 
-    results, failures = _run_one_pass(entries, twse_snapshot, use_twse_legacy, prefer_existing=False)
+    results, failures = _run_one_pass(entries, twse_snapshot, tpex_snapshot, use_twse_legacy, prefer_existing=False)
     retry_attempts: dict[str, int] = {f["id"]: 0 for f in failures}
 
     for attempt in range(1, RETRY_MAX_PASSES + 1):
@@ -447,18 +472,24 @@ def main(argv: list[str] | None = None) -> int:
         log.info("retry pass %d: %d stocks (backing off %ds)", attempt, len(failures), RETRY_BACKOFF_SEC)
         time.sleep(RETRY_BACKOFF_SEC)
 
-        # Refresh snapshot if first attempt failed entirely (still empty)
+        # Refresh snapshots if first attempt failed entirely (still empty)
         if has_twse and not twse_snapshot:
             try:
                 twse_snapshot = fetch_twse_latest_all()
                 log.info("twse snapshot refresh: %d stocks", len(twse_snapshot))
             except Exception as e:  # noqa: BLE001
                 log.error("twse snapshot refresh failed: %s", e)
+        if has_tpex and not tpex_snapshot:
+            try:
+                tpex_snapshot = fetch_tpex_latest_all()
+                log.info("tpex snapshot refresh: %d stocks", len(tpex_snapshot))
+            except Exception as e:  # noqa: BLE001
+                log.error("tpex snapshot refresh failed: %s", e)
 
         retry_ids = {f["id"] for f in failures}
         retry_entries = [e for e in entries if e["id"] in retry_ids]
         retry_results, retry_failures = _run_one_pass(
-            retry_entries, twse_snapshot, use_twse_legacy, prefer_existing=True,
+            retry_entries, twse_snapshot, tpex_snapshot, use_twse_legacy, prefer_existing=True,
         )
         succeeded_ids = {r["id"] for r in retry_results if r.get("status") in ("ok", "no_data")}
         results.extend(r for r in retry_results if r["id"] in succeeded_ids)
