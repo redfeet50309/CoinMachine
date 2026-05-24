@@ -36,6 +36,7 @@ from config import (
     RETRY_MAX_WAIT,
     RETRY_MIN_WAIT,
     TPEX_ENDPOINT,
+    TPEX_OPENAPI_DAILY_CLOSE_QUOTES,
     TWSE_ENDPOINT,
     TWSE_OPENAPI_STOCK_DAY_ALL,
     USER_AGENT,
@@ -77,7 +78,10 @@ def _roc_to_iso(roc: str) -> str:
 
 def _to_float(s: str) -> float:
     s = s.replace(",", "").strip()
-    if s in ("", "--", "X"):
+    # Empty / dash-only / "X" all signal "no trade today" on TWSE & TPEx;
+    # `set(s) == {"-"}` catches arbitrary dash strings ("---", "----", etc.)
+    # which appear in TPEx OpenAPI for illiquid bond ETFs.
+    if not s or s == "X" or set(s) == {"-"}:
         return float("nan")
     # TWSE change column may carry leading +/-/X
     if s.startswith(("+", "X")):
@@ -218,6 +222,49 @@ def fetch_twse_latest_all() -> dict[str, Bar]:
             )
         except (ValueError, TypeError, KeyError) as e:
             log.warning("twse openapi row parse failed: %s (%s)", row, e)
+    return out
+
+
+def fetch_tpex_latest_all() -> dict[str, Bar]:
+    """One-shot snapshot of the latest trading day for every TPEx-listed stock.
+
+    Symmetric to fetch_twse_latest_all(). Uses the official TPEx OpenAPI batch
+    endpoint, which returns the full main-board universe in a single request
+    (~4 MB, ~10k rows including ETFs and special boards). Returns dict keyed by
+    stock id.
+
+    Used as a defensive fallback so the TPEx flow has the same shape as TWSE:
+    even if the per-stock month endpoint flakes, the latest bar is still
+    available from the snapshot.
+    """
+    payload = _get_json(TPEX_OPENAPI_DAILY_CLOSE_QUOTES, {})
+    if not isinstance(payload, list):
+        return {}
+    out: dict[str, Bar] = {}
+    for row in payload:
+        try:
+            code = row.get("SecuritiesCompanyCode")
+            roc_date = row.get("Date")  # "1150522" = 2026/05/22
+            if not code or not roc_date or len(roc_date) < 7:
+                continue
+            close = _to_float(row.get("Close", ""))
+            # Illiquid rows (mostly bond ETFs) have no real OHLC; skip silently.
+            if close != close:  # NaN
+                continue
+            iso_date = f"{int(roc_date[:-4]) + 1911:04d}-{roc_date[-4:-2]}-{roc_date[-2:]}"
+            out[code] = Bar(
+                date=iso_date,
+                open=_to_float(row.get("Open", "")),
+                high=_to_float(row.get("High", "")),
+                low=_to_float(row.get("Low", "")),
+                close=close,
+                # TPEx OpenAPI batch returns shares directly; the legacy month
+                # endpoint returns 張 and needs ×1000 (see _parse_tpex above).
+                volume=_to_int(row.get("TradingShares", "0")),
+                name=row.get("CompanyName", "") or "",
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            log.warning("tpex openapi row parse failed: %s (%s)", row, e)
     return out
 
 

@@ -22,6 +22,7 @@ SCHEMA_VERSION = 1
 TWSE_ENDPOINT = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
 TWSE_OPENAPI_STOCK_DAY_ALL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
 TPEX_ENDPOINT = "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
+TPEX_OPENAPI_DAILY_CLOSE_QUOTES = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

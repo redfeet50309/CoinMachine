@@ -195,7 +195,7 @@ def test_run_one_pass_collects_results_and_failures(monkeypatch):
     monkeypatch.setattr(build_dataset, "time", type("T", (), {"sleep": lambda *a: None}))
 
     entries = [{"id": "OK1", "market": "TPEx"}, {"id": "FAIL", "market": "TPEx"}]
-    results, failures = build_dataset._run_one_pass(entries, {}, False)
+    results, failures = build_dataset._run_one_pass(entries, {}, {}, False)
     assert [r["id"] for r in results] == ["OK1"]
     assert [f["id"] for f in failures] == ["FAIL"]
     assert failures[0]["type"] == "fetch"
@@ -214,7 +214,7 @@ def test_run_one_pass_passes_prefer_existing_through(monkeypatch):
     monkeypatch.setattr(build_dataset, "update_stock", fake_update)
     monkeypatch.setattr(build_dataset, "time", type("T", (), {"sleep": lambda *a: None}))
 
-    build_dataset._run_one_pass([{"id": "X", "market": "TPEx"}], {}, False, prefer_existing=True)
+    build_dataset._run_one_pass([{"id": "X", "market": "TPEx"}], {}, {}, False, prefer_existing=True)
     assert received["prefer_existing"] is True
 
 

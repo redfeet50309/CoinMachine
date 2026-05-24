@@ -19,6 +19,7 @@ from fetch_twse import (  # noqa: E402
     _roc_to_iso,
     _to_float,
     _to_int,
+    fetch_tpex_latest_all,
     fetch_twse_latest_all,
     months_between,
 )
@@ -61,6 +62,14 @@ def test_to_float_plus_sign_stripped():
 def test_to_float_x_marker_stripped():
     # TWSE change column may carry 'X' marker
     assert _to_float("X3.2") == 3.2
+
+
+def test_to_float_triple_dash_is_nan():
+    # TPEx OpenAPI uses "---" for illiquid bond ETF rows; treat as no-trade.
+    import math
+    assert math.isnan(_to_float("---"))
+    assert math.isnan(_to_float(" --- "))
+    assert math.isnan(_to_float("----"))
 
 
 def test_to_float_x_alone_is_nan():
@@ -324,6 +333,100 @@ def test_fetch_twse_latest_all_non_list_payload(monkeypatch):
     import fetch_twse
     monkeypatch.setattr(fetch_twse, "_get_json", lambda url, params: {"oops": "wrong shape"})
     assert fetch_twse_latest_all() == {}
+
+
+# ---------- fetch_tpex_latest_all (parser only; we patch the GET) ----------
+
+def test_fetch_tpex_latest_all_parses_list(monkeypatch):
+    sample = [
+        {
+            "SecuritiesCompanyCode": "8299",
+            "CompanyName": "群聯",
+            "Date": "1150522",
+            "Open": "2425.00",
+            "High": "2480.00",
+            "Low": "2400.00",
+            "Close": "2430.00",
+            "TradingShares": "6,123,057",
+        },
+        {
+            "SecuritiesCompanyCode": "6488",
+            "CompanyName": "祥碩",
+            "Date": "1150522",
+            "Open": "716.00",
+            "High": "747.00",
+            "Low": "711.00",
+            "Close": "717.00",
+            "TradingShares": "6555076",
+        },
+    ]
+    import fetch_twse
+    monkeypatch.setattr(fetch_twse, "_get_json", lambda url, params: sample)
+    out = fetch_tpex_latest_all()
+    assert set(out.keys()) == {"8299", "6488"}
+    assert out["8299"].date == "2026-05-22"
+    assert out["8299"].close == 2430.0
+    assert out["8299"].name == "群聯"
+    # TPEx OpenAPI returns shares directly — should NOT be ×1000 (unlike legacy).
+    assert out["8299"].volume == 6_123_057
+    assert out["6488"].volume == 6_555_076
+
+
+def test_fetch_tpex_latest_all_skips_dash_placeholder_rows(monkeypatch):
+    # Illiquid bond ETFs (00791B, 00834B, etc.) carry '---' for OHLC when no
+    # trade happened. These rows must be filtered, not raise or yield NaN bars.
+    sample = [
+        {
+            "SecuritiesCompanyCode": "00791B",
+            "CompanyName": "復華新興債1-5",
+            "Date": "1150522",
+            "Open": "---",
+            "High": "---",
+            "Low": "---",
+            "Close": " ---",
+            "TradingShares": "0",
+        },
+        {
+            "SecuritiesCompanyCode": "8299",
+            "CompanyName": "群聯",
+            "Date": "1150522",
+            "Open": "2425", "High": "2480", "Low": "2400", "Close": "2430",
+            "TradingShares": "6000000",
+        },
+    ]
+    import fetch_twse
+    monkeypatch.setattr(fetch_twse, "_get_json", lambda url, params: sample)
+    out = fetch_tpex_latest_all()
+    assert set(out.keys()) == {"8299"}  # 00791B filtered out
+
+
+def test_fetch_tpex_latest_all_skips_missing_code_and_bad_date(monkeypatch):
+    sample = [
+        {"Date": "1150522", "Close": "100"},                       # no code
+        {"SecuritiesCompanyCode": "8299", "Date": "115", "Close": "100"},  # bad date len
+    ]
+    import fetch_twse
+    monkeypatch.setattr(fetch_twse, "_get_json", lambda url, params: sample)
+    assert fetch_tpex_latest_all() == {}
+
+
+def test_fetch_tpex_latest_all_non_list_payload(monkeypatch):
+    import fetch_twse
+    monkeypatch.setattr(fetch_twse, "_get_json", lambda url, params: {"oops": "wrong shape"})
+    assert fetch_tpex_latest_all() == {}
+
+
+def test_fetch_tpex_latest_all_missing_name_yields_empty(monkeypatch):
+    sample = [{
+        "SecuritiesCompanyCode": "8299",
+        "Date": "1150522",
+        "Open": "100", "High": "110", "Low": "95", "Close": "105",
+        "TradingShares": "1000",
+    }]
+    import fetch_twse
+    monkeypatch.setattr(fetch_twse, "_get_json", lambda url, params: sample)
+    out = fetch_tpex_latest_all()
+    assert out["8299"].name == ""
 
 
 # ---------- months_between ----------
