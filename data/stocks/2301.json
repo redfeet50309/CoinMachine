@@ -2,64 +2,64 @@
   "stock_id": "2301",
   "name": "光寶科",
   "market": "TWSE",
-  "last_updated": "2026-05-23T01:06:51+08:00",
-  "last_trade_date": "2026-05-22",
+  "last_updated": "2026-05-25T22:09:19+08:00",
+  "last_trade_date": "2026-05-25",
   "rule_version": "v1.3.0",
   "inactive": false,
   "latest": {
-    "close": 207.0,
-    "volume": 20418494,
+    "close": 227.5,
+    "volume": 33551128,
     "ma": {
-      "ma5": 205.9,
-      "ma10": 211.1,
-      "ma20": 194.9,
-      "ma60": 171.9583,
-      "ma120": 167.675,
-      "ma240": 152.9854
+      "ma5": 209.9,
+      "ma10": 211.45,
+      "ma20": 197.8,
+      "ma60": 172.525,
+      "ma120": 168.2917,
+      "ma240": 153.5042
     },
     "macd": {
-      "dif": 10.9953,
-      "macd": 11.593,
-      "osc": -0.5977
+      "dif": 12.1333,
+      "macd": 11.701,
+      "osc": 0.4323
     },
     "rsi": {
-      "value": 60.6847,
+      "value": 69.2985,
       "zone": "中性",
       "numbing": null,
       "divergence": null,
       "strategy": null
     },
     "bb": {
-      "upper": 234.7705,
-      "middle": 194.9,
-      "lower": 155.0295,
-      "percent_b": 0.6517,
-      "bandwidth": 0.4091,
+      "upper": 238.2912,
+      "middle": 197.8,
+      "lower": 157.3088,
+      "percent_b": 0.8667,
+      "bandwidth": 0.4094,
       "bandwidth_pct20": 0.101,
       "bandwidth_pct05": 0.0725,
       "zone": "多頭區間",
       "cross": null,
-      "percent_b_zone": "中性",
+      "percent_b_zone": "多頭 (≥80%)",
       "bandwidth_state": "正常",
       "range_strategy": null,
       "divergence": null
     },
     "pv": {
-      "price_change_pct": 0.0122,
-      "volume_change_pct": -0.2237,
-      "return_n": 0.2584,
-      "state": "價漲量縮",
-      "category": "背離",
+      "price_change_pct": 0.099,
+      "volume_change_pct": 0.6432,
+      "return_n": 0.3422,
+      "state": "價漲量增",
+      "category": "趨勢確認",
       "phase": "大漲後高位",
-      "alert": "⚠ 量價背離:漲勢動能衰退 (頂部警訊)"
+      "alert": null
     },
     "signals": {
       "ma_trend": "多頭排列",
       "ma_cross": null,
-      "ma_spread_state": "多頭發散",
+      "ma_spread_state": "向上發散",
       "macd_zone": "零軸之上 (多頭)",
-      "macd_cross": null,
-      "macd_histogram": "綠柱變長",
+      "macd_cross": "黃金交叉 (強)",
+      "macd_histogram": "紅柱翻揚",
       "macd_divergence": null,
       "rsi_zone": "中性",
       "rsi_numbing": null,
@@ -67,43 +67,21 @@
       "rsi_strategy": null,
       "bb_zone": "多頭區間",
       "bb_cross": null,
-      "bb_percent_b_zone": "中性",
+      "bb_percent_b_zone": "多頭 (≥80%)",
       "bb_bandwidth_state": "正常",
       "bb_range_strategy": null,
       "bb_divergence": null,
-      "pv_state": "價漲量縮",
-      "pv_category": "背離",
+      "pv_state": "價漲量增",
+      "pv_category": "趨勢確認",
       "market_phase": "大漲後高位",
-      "pv_alert": "⚠ 量價背離:漲勢動能衰退 (頂部警訊)"
+      "pv_alert": null
     },
     "alerts": [
-      "⚠ 量價背離:漲勢動能衰退 (頂部警訊)"
+      "今日：MACD 黃金交叉 (強)",
+      "均線多頭向上發散"
     ]
   },
   "history": [
-    {
-      "date": "2025-03-28",
-      "o": 100.0,
-      "h": 100.0,
-      "l": 97.3,
-      "c": 98.0,
-      "v": 14685843,
-      "ma5": null,
-      "ma20": null,
-      "ma60": null,
-      "dif": 0.0,
-      "macd": 0.0,
-      "osc": 0.0,
-      "rsi": null,
-      "bb_upper": null,
-      "bb_middle": null,
-      "bb_lower": null,
-      "percent_b": null,
-      "bandwidth": null,
-      "bandwidth_pct20": null,
-      "price_change_pct": null,
-      "volume_change_pct": null
-    },
     {
       "date": "2025-03-31",
       "o": 95.5,
@@ -6520,6 +6498,29 @@
       "bandwidth_pct20": 0.101,
       "price_change_pct": 0.0122,
       "volume_change_pct": -0.2237
+    },
+    {
+      "date": "2026-05-25",
+      "o": 212.0,
+      "h": 227.5,
+      "l": 211.5,
+      "c": 227.5,
+      "v": 33551128,
+      "ma5": 209.9,
+      "ma20": 197.8,
+      "ma60": 172.525,
+      "dif": 12.1333,
+      "macd": 11.701,
+      "osc": 0.4323,
+      "rsi": 69.2985,
+      "bb_upper": 238.2912,
+      "bb_middle": 197.8,
+      "bb_lower": 157.3088,
+      "percent_b": 0.8667,
+      "bandwidth": 0.4094,
+      "bandwidth_pct20": 0.101,
+      "price_change_pct": 0.099,
+      "volume_change_pct": 0.6432
     }
   ]
 }

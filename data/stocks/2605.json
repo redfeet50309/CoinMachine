@@ -2,25 +2,25 @@
   "stock_id": "2605",
   "name": "新興",
   "market": "TWSE",
-  "last_updated": "2026-05-23T01:06:54+08:00",
-  "last_trade_date": "2026-05-22",
+  "last_updated": "2026-05-25T22:09:25+08:00",
+  "last_trade_date": "2026-05-25",
   "rule_version": "v1.3.0",
   "inactive": false,
   "latest": {
     "close": 31.3,
-    "volume": 4496944,
+    "volume": 5963042,
     "ma": {
-      "ma5": 30.45,
-      "ma10": 31.18,
-      "ma20": 32.5975,
-      "ma60": 35.9642,
-      "ma120": 31.6492,
-      "ma240": 27.3646
+      "ma5": 30.72,
+      "ma10": 30.9,
+      "ma20": 32.4875,
+      "ma60": 35.9708,
+      "ma120": 31.7162,
+      "ma240": 27.3977
     },
     "macd": {
-      "dif": -1.5105,
-      "macd": -1.4063,
-      "osc": -0.1042
+      "dif": -1.4175,
+      "macd": -1.4085,
+      "osc": -0.009
     },
     "rsi": {
       "value": 41.0483,
@@ -30,11 +30,11 @@
       "strategy": null
     },
     "bb": {
-      "upper": 36.3124,
-      "middle": 32.5975,
-      "lower": 28.8826,
-      "percent_b": 0.3254,
-      "bandwidth": 0.2279,
+      "upper": 36.2192,
+      "middle": 32.4875,
+      "lower": 28.7558,
+      "percent_b": 0.3409,
+      "bandwidth": 0.2297,
       "bandwidth_pct20": 0.0914,
       "bandwidth_pct05": 0.0731,
       "zone": "空頭區間",
@@ -45,21 +45,21 @@
       "divergence": null
     },
     "pv": {
-      "price_change_pct": 0.0229,
-      "volume_change_pct": 0.2549,
-      "return_n": -0.0544,
-      "state": "價漲量增",
-      "category": "趨勢確認",
+      "price_change_pct": 0.0,
+      "volume_change_pct": 0.326,
+      "return_n": -0.0657,
+      "state": "價平量增",
+      "category": "盤整",
       "phase": "空頭中段",
       "alert": null
     },
     "signals": {
       "ma_trend": "空頭排列",
       "ma_cross": null,
-      "ma_spread_state": "向下發散",
+      "ma_spread_state": "空頭發散",
       "macd_zone": "零軸之下 (空頭)",
       "macd_cross": null,
-      "macd_histogram": "綠柱縮短 (連5日)",
+      "macd_histogram": "綠柱縮短 (連6日)",
       "macd_divergence": null,
       "rsi_zone": "中性",
       "rsi_numbing": null,
@@ -71,39 +71,14 @@
       "bb_bandwidth_state": "正常",
       "bb_range_strategy": null,
       "bb_divergence": null,
-      "pv_state": "價漲量增",
-      "pv_category": "趨勢確認",
+      "pv_state": "價平量增",
+      "pv_category": "盤整",
       "market_phase": "空頭中段",
       "pv_alert": null
     },
-    "alerts": [
-      "均線空頭向下發散"
-    ]
+    "alerts": []
   },
   "history": [
-    {
-      "date": "2025-03-28",
-      "o": 26.45,
-      "h": 26.5,
-      "l": 25.45,
-      "c": 25.8,
-      "v": 5033062,
-      "ma5": null,
-      "ma20": null,
-      "ma60": null,
-      "dif": 0.0,
-      "macd": 0.0,
-      "osc": 0.0,
-      "rsi": null,
-      "bb_upper": null,
-      "bb_middle": null,
-      "bb_lower": null,
-      "percent_b": null,
-      "bandwidth": null,
-      "bandwidth_pct20": null,
-      "price_change_pct": null,
-      "volume_change_pct": null
-    },
     {
       "date": "2025-03-31",
       "o": 25.0,
@@ -6520,6 +6495,29 @@
       "bandwidth_pct20": 0.0914,
       "price_change_pct": 0.0229,
       "volume_change_pct": 0.2549
+    },
+    {
+      "date": "2026-05-25",
+      "o": 31.3,
+      "h": 31.5,
+      "l": 30.3,
+      "c": 31.3,
+      "v": 5963042,
+      "ma5": 30.72,
+      "ma20": 32.4875,
+      "ma60": 35.9708,
+      "dif": -1.4175,
+      "macd": -1.4085,
+      "osc": -0.009,
+      "rsi": 41.0483,
+      "bb_upper": 36.2192,
+      "bb_middle": 32.4875,
+      "bb_lower": 28.7558,
+      "percent_b": 0.3409,
+      "bandwidth": 0.2297,
+      "bandwidth_pct20": 0.0914,
+      "price_change_pct": 0.0,
+      "volume_change_pct": 0.326
     }
   ]
 }

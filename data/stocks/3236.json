@@ -2,39 +2,39 @@
   "stock_id": "3236",
   "name": "千如",
   "market": "TPEx",
-  "last_updated": "2026-05-23T01:07:10+08:00",
-  "last_trade_date": "2026-05-22",
+  "last_updated": "2026-05-25T22:09:43+08:00",
+  "last_trade_date": "2026-05-25",
   "rule_version": "v1.3.0",
   "inactive": false,
   "latest": {
-    "close": 53.0,
-    "volume": 6054000,
+    "close": 58.3,
+    "volume": 1720000,
     "ma": {
-      "ma5": 45.3,
-      "ma10": 41.44,
-      "ma20": 36.2375,
-      "ma60": 32.87,
-      "ma120": 31.3179,
-      "ma240": 24.8988
+      "ma5": 48.75,
+      "ma10": 43.81,
+      "ma20": 37.675,
+      "ma60": 33.3,
+      "ma120": 31.5771,
+      "ma240": 25.0708
     },
     "macd": {
-      "dif": 4.0715,
-      "macd": 2.3242,
-      "osc": 1.7473
+      "dif": 5.1029,
+      "macd": 2.8799,
+      "osc": 2.223
     },
     "rsi": {
-      "value": 83.0191,
+      "value": 86.1218,
       "zone": "超買 (>70)",
       "numbing": "高檔鈍化",
       "divergence": null,
       "strategy": null
     },
     "bb": {
-      "upper": 49.2459,
-      "middle": 36.2375,
-      "lower": 23.2291,
-      "percent_b": 1.1443,
-      "bandwidth": 0.718,
+      "upper": 53.4661,
+      "middle": 37.675,
+      "lower": 21.8839,
+      "percent_b": 1.1531,
+      "bandwidth": 0.8383,
       "bandwidth_pct20": 0.0851,
       "bandwidth_pct05": 0.0476,
       "zone": "上軌之上",
@@ -45,9 +45,9 @@
       "divergence": "近期頂背離"
     },
     "pv": {
-      "price_change_pct": 0.0984,
-      "volume_change_pct": -0.6704,
-      "return_n": 0.755,
+      "price_change_pct": 0.1,
+      "volume_change_pct": -0.7159,
+      "return_n": 0.9729,
       "state": "價漲量縮",
       "category": "背離",
       "phase": "大漲後高位",
@@ -59,7 +59,7 @@
       "ma_spread_state": "向上發散",
       "macd_zone": "零軸之上 (多頭)",
       "macd_cross": null,
-      "macd_histogram": "紅柱變長 (連4日)",
+      "macd_histogram": "紅柱變長 (連5日)",
       "macd_divergence": null,
       "rsi_zone": "超買 (>70)",
       "rsi_numbing": "高檔鈍化",
@@ -83,29 +83,6 @@
     ]
   },
   "history": [
-    {
-      "date": "2025-03-28",
-      "o": 18.7,
-      "h": 18.7,
-      "l": 18.0,
-      "c": 18.4,
-      "v": 259000,
-      "ma5": null,
-      "ma20": null,
-      "ma60": null,
-      "dif": 0.0,
-      "macd": 0.0,
-      "osc": 0.0,
-      "rsi": null,
-      "bb_upper": null,
-      "bb_middle": null,
-      "bb_lower": null,
-      "percent_b": null,
-      "bandwidth": null,
-      "bandwidth_pct20": null,
-      "price_change_pct": null,
-      "volume_change_pct": null
-    },
     {
       "date": "2025-03-31",
       "o": 18.65,
@@ -6522,6 +6499,29 @@
       "bandwidth_pct20": 0.0851,
       "price_change_pct": 0.0984,
       "volume_change_pct": -0.6704
+    },
+    {
+      "date": "2026-05-25",
+      "o": 58.3,
+      "h": 58.3,
+      "l": 58.3,
+      "c": 58.3,
+      "v": 1720000,
+      "ma5": 48.75,
+      "ma20": 37.675,
+      "ma60": 33.3,
+      "dif": 5.1029,
+      "macd": 2.8799,
+      "osc": 2.223,
+      "rsi": 86.1218,
+      "bb_upper": 53.4661,
+      "bb_middle": 37.675,
+      "bb_lower": 21.8839,
+      "percent_b": 1.1531,
+      "bandwidth": 0.8383,
+      "bandwidth_pct20": 0.0851,
+      "price_change_pct": 0.1,
+      "volume_change_pct": -0.7159
     }
   ]
 }
