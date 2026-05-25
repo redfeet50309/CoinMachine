@@ -66,6 +66,12 @@
       "name": "千如",
       "market": "TPEx",
       "added_at": "2026-05-20"
+    },
+    {
+      "id": "8150",
+      "name": "8150",
+      "market": null,
+      "added_at": "2026-05-25"
     }
   ]
 }
