@@ -51,6 +51,16 @@ function Invoke-Native($exe, $argList, $label) {
 Write-Log '--- run start ---'
 
 try {
+  # Auto-stash any unstaged changes so git pull --rebase can proceed.
+  # No pop: build_dataset.py overwrites data/ next anyway. Recover manually
+  # with `git stash list` + `git stash apply` if needed.
+  $dirty = & git status --porcelain
+  if (-not [string]::IsNullOrWhiteSpace($dirty)) {
+    $stamp = (Get-Date).ToString('yyyy-MM-dd-HHmm')
+    Write-Log "working tree dirty; stashing as auto-stash-$stamp"
+    Invoke-Native -exe 'git' -argList @('stash', 'push', '-u', '-m', "auto-stash-$stamp") -label 'git stash' | Out-Null
+  }
+
   Write-Log 'git pull --rebase'
   Invoke-Native -exe 'git' -argList @('pull', '--rebase') -label 'git pull' | Out-Null
 
