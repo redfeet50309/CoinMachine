@@ -1,89 +1,89 @@
 {
-  "generated_at": "2026-05-26T22:00:46+08:00",
+  "generated_at": "2026-05-27T22:01:02+08:00",
   "schema_version": 1,
   "stocks": [
     {
       "id": "8299",
       "name": "群聯",
       "market": "TPEx",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "8039",
       "name": "台虹",
       "market": "TWSE",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "2301",
       "name": "光寶科",
       "market": "TWSE",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "2369",
       "name": "菱生",
       "market": "TWSE",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "2605",
       "name": "新興",
       "market": "TWSE",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "3105",
       "name": "穩懋",
       "market": "TPEx",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "3135",
       "name": "凌航",
       "market": "TWSE",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "3131",
       "name": "弘塑",
       "market": "TPEx",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "2368",
       "name": "金像電",
       "market": "TWSE",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "2449",
       "name": "京元電子",
       "market": "TWSE",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "3236",
       "name": "千如",
       "market": "TPEx",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     },
     {
       "id": "8150",
       "name": "南茂",
       "market": "TWSE",
-      "updated": "2026-05-26",
+      "updated": "2026-05-27",
       "status": "ok"
     }
   ]
