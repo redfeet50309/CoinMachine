@@ -2,56 +2,56 @@
   "stock_id": "3135",
   "name": "凌航",
   "market": "TWSE",
-  "last_updated": "2026-05-28T22:00:31+08:00",
-  "last_trade_date": "2026-05-28",
+  "last_updated": "2026-05-30T20:08:43+08:00",
+  "last_trade_date": "2026-05-29",
   "rule_version": "v1.3.0",
   "inactive": false,
   "latest": {
-    "close": 250.0,
-    "volume": 3644127,
+    "close": 260.5,
+    "volume": 2472253,
     "ma": {
-      "ma5": 228.4,
-      "ma10": 214.0,
-      "ma20": 197.925,
-      "ma60": 146.4833,
-      "ma120": 119.6867,
+      "ma5": 238.2,
+      "ma10": 218.45,
+      "ma20": 203.875,
+      "ma60": 148.925,
+      "ma120": 121.4033,
       "ma240": null
     },
     "macd": {
-      "dif": 24.0489,
-      "macd": 21.0958,
-      "osc": 2.9531
+      "dif": 25.9719,
+      "macd": 22.071,
+      "osc": 3.9009
     },
     "rsi": {
-      "value": 77.5583,
+      "value": 79.4927,
       "zone": "超買 (>70)",
       "numbing": "高檔鈍化",
       "divergence": null,
       "strategy": null
     },
     "bb": {
-      "upper": 253.4815,
-      "middle": 197.925,
-      "lower": 142.3685,
-      "percent_b": 0.9687,
-      "bandwidth": 0.5614,
-      "bandwidth_pct20": 0.2805,
-      "bandwidth_pct05": 0.219,
-      "zone": "多頭區間",
-      "cross": null,
-      "percent_b_zone": "多頭 (≥80%)",
+      "upper": 259.4743,
+      "middle": 203.875,
+      "lower": 148.2757,
+      "percent_b": 1.0092,
+      "bandwidth": 0.5454,
+      "bandwidth_pct20": 0.281,
+      "bandwidth_pct05": 0.2193,
+      "zone": "上軌之上",
+      "cross": "突破上軌 (強多)",
+      "percent_b_zone": "超強多 (>100%)",
       "bandwidth_state": "正常",
       "range_strategy": null,
       "divergence": null
     },
     "pv": {
-      "price_change_pct": 0.0331,
-      "volume_change_pct": -0.0271,
-      "return_n": 0.7301,
-      "state": "價漲量平",
-      "category": "盤整",
+      "price_change_pct": 0.042,
+      "volume_change_pct": -0.3216,
+      "return_n": 0.841,
+      "state": "價漲量縮",
+      "category": "背離",
       "phase": "大漲後高位",
-      "alert": null
+      "alert": "⚠ 量價背離:漲勢動能衰退 (頂部警訊)"
     },
     "signals": {
       "ma_trend": "多頭排列",
@@ -59,26 +59,28 @@
       "ma_spread_state": "向上發散",
       "macd_zone": "零軸之上 (多頭)",
       "macd_cross": null,
-      "macd_histogram": "紅柱變長 (連5日)",
+      "macd_histogram": "紅柱變長 (連6日)",
       "macd_divergence": null,
       "rsi_zone": "超買 (>70)",
       "rsi_numbing": "高檔鈍化",
       "rsi_divergence": null,
       "rsi_strategy": null,
-      "bb_zone": "多頭區間",
-      "bb_cross": null,
-      "bb_percent_b_zone": "多頭 (≥80%)",
+      "bb_zone": "上軌之上",
+      "bb_cross": "突破上軌 (強多)",
+      "bb_percent_b_zone": "超強多 (>100%)",
       "bb_bandwidth_state": "正常",
       "bb_range_strategy": null,
       "bb_divergence": null,
-      "pv_state": "價漲量平",
-      "pv_category": "盤整",
+      "pv_state": "價漲量縮",
+      "pv_category": "背離",
       "market_phase": "大漲後高位",
-      "pv_alert": null
+      "pv_alert": "⚠ 量價背離:漲勢動能衰退 (頂部警訊)"
     },
     "alerts": [
       "均線多頭向上發散",
-      "RSI 高檔鈍化 (強勢可改用 80/20)"
+      "RSI 高檔鈍化 (強勢可改用 80/20)",
+      "今日：布林 突破上軌 (強多)",
+      "⚠ 量價背離:漲勢動能衰退 (頂部警訊)"
     ]
   },
   "history": [
@@ -4566,6 +4568,29 @@
       "bandwidth_pct20": 0.2805,
       "price_change_pct": 0.0331,
       "volume_change_pct": -0.0271
+    },
+    {
+      "date": "2026-05-29",
+      "o": 261.0,
+      "h": 266.0,
+      "l": 258.0,
+      "c": 260.5,
+      "v": 2472253,
+      "ma5": 238.2,
+      "ma20": 203.875,
+      "ma60": 148.925,
+      "dif": 25.9719,
+      "macd": 22.071,
+      "osc": 3.9009,
+      "rsi": 79.4927,
+      "bb_upper": 259.4743,
+      "bb_middle": 203.875,
+      "bb_lower": 148.2757,
+      "percent_b": 1.0092,
+      "bandwidth": 0.5454,
+      "bandwidth_pct20": 0.281,
+      "price_change_pct": 0.042,
+      "volume_change_pct": -0.3216
     }
   ]
 }
