@@ -72,6 +72,12 @@
       "name": "南茂",
       "market": "TWSE",
       "added_at": "2026-05-25"
+    },
+    {
+      "id": "6509",
+      "name": "6509",
+      "market": null,
+      "added_at": "2026-05-30"
     }
   ]
 }
