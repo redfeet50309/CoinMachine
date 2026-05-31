@@ -66,8 +66,10 @@ try {
 
   # Use py.exe launcher to find the system Python 3.11 (with pandas installed).
   # Plain `python` on PATH may resolve to a sandboxed venv that lacks deps.
-  Write-Log 'py -3 scripts/build_dataset.py'
-  Invoke-Native -exe 'py' -argList @('-3', 'scripts\build_dataset.py') -label 'build_dataset.py' | Out-Null
+  # UTF-8 IO so build_dataset's internal LINE-notify logging is safe on cp950
+  $env:PYTHONIOENCODING = 'utf-8'
+  Write-Log 'py -3 -X utf8 scripts/build_dataset.py'
+  Invoke-Native -exe 'py' -argList @('-3', '-X', 'utf8', 'scripts\build_dataset.py') -label 'build_dataset.py' | Out-Null
 
   Write-Log 'git add data/'
   Invoke-Native -exe 'git' -argList @('add', 'data/') -label 'git add' | Out-Null
@@ -86,12 +88,9 @@ try {
     Invoke-Native -exe 'git' -argList @('push') -label 'git push' | Out-Null
   }
 
-  # LINE push — runs even when there were no data changes (sends a "quiet day"
-  # summary). PYTHONIOENCODING=utf-8 + -X utf8 keeps log output from crashing
-  # on cp950 consoles when alert text contains emoji.
-  Write-Log 'py -3 -X utf8 scripts/notify.py'
-  $env:PYTHONIOENCODING = 'utf-8'
-  Invoke-Native -exe 'py' -argList @('-3', '-X', 'utf8', 'scripts\notify.py') -label 'notify.py' | Out-Null
+  # NOTE: LINE push is NOT called here — build_dataset.py already invokes
+  # notify (send_daily_summary) at the end of its run. Adding a second call
+  # here pushed the message twice (seen 2026-05-31 17:56). One push per build.
 
   Write-Log '--- run ok ---'
   exit 0
