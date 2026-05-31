@@ -81,14 +81,14 @@
     },
     {
       "id": "6279",
-      "name": "6279",
-      "market": null,
+      "name": "胡連",
+      "market": "TPEx",
       "added_at": "2026-05-31"
     },
     {
       "id": "5388",
-      "name": "5388",
-      "market": null,
+      "name": "中磊",
+      "market": "TWSE",
       "added_at": "2026-05-31"
     }
   ]

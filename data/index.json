@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-30T20:10:02+08:00",
+  "generated_at": "2026-05-31T17:56:04+08:00",
   "schema_version": 1,
   "stocks": [
     {
@@ -90,6 +90,20 @@
       "id": "6509",
       "name": "聚和",
       "market": "TPEx",
+      "updated": "2026-05-29",
+      "status": "ok"
+    },
+    {
+      "id": "6279",
+      "name": "胡連",
+      "market": "TPEx",
+      "updated": "2026-05-29",
+      "status": "ok"
+    },
+    {
+      "id": "5388",
+      "name": "中磊",
+      "market": "TWSE",
       "updated": "2026-05-29",
       "status": "ok"
     }
