@@ -230,14 +230,20 @@ def _format_message(
     state: dict,
     watchlist_names: dict[str, str],
     today: date,
+    data_date: str | None = None,
 ) -> str:
     """Compose the LINE message text.
 
     grouped: {category: [{id, alerts, change_pct}, ...]}
     state:   new state (used for 連N日 suffix per alert)
     """
-    weekday = _WEEKDAY_ZH[today.weekday()]
-    header = f"📊 CoinMachine {today.month}/{today.day}({weekday}) 收盤"
+    # Header shows the actual data (收盤) date; warn if it lags today, which
+    # means today's market data hadn't been published when the build ran.
+    disp = date.fromisoformat(data_date) if data_date else today
+    weekday = _WEEKDAY_ZH[disp.weekday()]
+    header = f"📊 CoinMachine {disp.month}/{disp.day}({weekday}) 收盤"
+    if data_date and disp != today:
+        header += f"\n⚠️ 今日 {today.month}/{today.day} 資料尚未更新（以下為前一交易日）"
 
     # Quiet day: nothing in active categories → short message
     total_active = len(grouped["alert"]) + len(grouped["long"]) + len(grouped["short"])
@@ -346,14 +352,14 @@ def _build_today_dataset(
         path = stocks_dir / f"{sid}.json"
         if not path.exists():
             today_alerts[sid] = []
-            idx_map[sid] = {"close": None, "change_pct": None}
+            idx_map[sid] = {"close": None, "change_pct": None, "last_trade_date": None}
             continue
         try:
             d = json.loads(path.read_text(encoding="utf-8"))
         except Exception as e:  # noqa: BLE001
             log.warning("load %s failed: %s", sid, e)
             today_alerts[sid] = []
-            idx_map[sid] = {"close": None, "change_pct": None}
+            idx_map[sid] = {"close": None, "change_pct": None, "last_trade_date": None}
             continue
         if d.get("inactive"):
             continue  # skip inactive entirely
@@ -364,6 +370,7 @@ def _build_today_dataset(
         idx_map[sid] = {
             "close": latest.get("close"),
             "change_pct": (chg_frac * 100) if isinstance(chg_frac, (int, float)) else None,
+            "last_trade_date": d.get("last_trade_date"),
         }
 
     return today_alerts, watchlist_names, idx_map
@@ -410,7 +417,13 @@ def send_daily_summary(
         today_iso,
     )
 
-    msg = _format_message(grouped, new_state, names, today)
+    # Freshest trade date across active stocks → staleness annotation
+    _trade_dates = [
+        v.get("last_trade_date") for v in idx_map.values() if v.get("last_trade_date")
+    ]
+    data_date = max(_trade_dates) if _trade_dates else None
+
+    msg = _format_message(grouped, new_state, names, today, data_date)
 
     if dry_run:
         print("=" * 60)
