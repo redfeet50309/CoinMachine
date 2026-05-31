@@ -154,6 +154,50 @@ def test_update_state_continuing_signal_increments():
     assert new["stocks"]["8299"]["alerts"]["量價背離:漲勢動能衰退 (頂部警訊)"] == 2
 
 
+def test_update_state_same_day_rerun_does_not_inflate():
+    """Running notify twice on the SAME calendar day must not advance 連N日."""
+    prev = {
+        "last_updated": "2026-05-22T22:00:05+08:00",
+        "stocks": {"8299": {"alerts": {"均線多頭向上發散": 3}}},
+    }
+    # Same date (2026-05-22), 7 seconds later — a manual test re-run
+    new = _update_state(
+        prev,
+        {"8299": ["均線多頭向上發散"]},
+        "2026-05-22T22:00:12+08:00",
+    )
+    assert new["stocks"]["8299"]["alerts"]["均線多頭向上發散"] == 3  # unchanged
+
+
+def test_update_state_same_day_new_alert_starts_at_one():
+    """A brand-new alert appearing on a same-day re-run starts at 連1日."""
+    prev = {
+        "last_updated": "2026-05-22T22:00:05+08:00",
+        "stocks": {"8299": {"alerts": {"均線多頭向上發散": 3}}},
+    }
+    new = _update_state(
+        prev,
+        {"8299": ["均線多頭向上發散", "RSI 高檔鈍化"]},
+        "2026-05-22T22:00:12+08:00",
+    )
+    assert new["stocks"]["8299"]["alerts"]["均線多頭向上發散"] == 3
+    assert new["stocks"]["8299"]["alerts"]["RSI 高檔鈍化"] == 1
+
+
+def test_update_state_next_day_increments():
+    """A different calendar day advances the streak normally."""
+    prev = {
+        "last_updated": "2026-05-22T22:00:00+08:00",
+        "stocks": {"8299": {"alerts": {"均線多頭向上發散": 3}}},
+    }
+    new = _update_state(
+        prev,
+        {"8299": ["均線多頭向上發散"]},
+        "2026-05-23T22:00:00+08:00",
+    )
+    assert new["stocks"]["8299"]["alerts"]["均線多頭向上發散"] == 4
+
+
 def test_update_state_drops_signal_no_longer_active():
     prev = {
         "stocks": {

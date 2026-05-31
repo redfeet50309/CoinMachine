@@ -182,7 +182,15 @@ def _update_state(prev_state: dict, today_alerts: dict[str, list[str]], today_is
     today_alerts maps stock_id → list of (raw) alert texts. Stocks with empty
     alerts are dropped from the new state.
     """
-    prev_stocks = (prev_state or {}).get("stocks", {})
+    prev_state = prev_state or {}
+    prev_stocks = prev_state.get("stocks", {})
+
+    # Consecutive-day counting is per CALENDAR DAY, not per run. If notify runs
+    # more than once on the same date (e.g. a manual test plus the 22:00 cron),
+    # don't advance the streak again — otherwise a same-day re-run inflates 連N日.
+    prev_date = (prev_state.get("last_updated") or "")[:10]
+    same_day = prev_date == today_iso[:10]
+
     new_stocks: dict[str, dict] = {}
 
     for sid, alerts in today_alerts.items():
@@ -190,7 +198,13 @@ def _update_state(prev_state: dict, today_alerts: dict[str, list[str]], today_is
         new_alerts: dict[str, int] = {}
         for a in alerts:
             key = _normalize_alert_key(a)
-            new_alerts[key] = prev_alerts.get(key, 0) + 1
+            prev_count = prev_alerts.get(key, 0)
+            if same_day:
+                # idempotent within a day: keep prior streak; a brand-new alert
+                # appearing on a same-day re-run still starts at 1
+                new_alerts[key] = prev_count if prev_count > 0 else 1
+            else:
+                new_alerts[key] = prev_count + 1
         if new_alerts:
             new_stocks[sid] = {"alerts": new_alerts}
 
