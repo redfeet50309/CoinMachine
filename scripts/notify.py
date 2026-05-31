@@ -18,11 +18,21 @@ from __future__ import annotations
 import json
 import logging
 import re
+import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import requests
+
+# Windows PowerShell defaults to cp950 on this machine; printing emoji in
+# dry-run output crashes with UnicodeEncodeError. Reconfigure stdout/stderr
+# to UTF-8 (Python 3.7+ has this method on TextIOWrapper).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    except (AttributeError, ValueError):
+        pass
 
 from config import (
     LINE_BROADCAST_URL,

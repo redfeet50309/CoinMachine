@@ -86,6 +86,13 @@ try {
     Invoke-Native -exe 'git' -argList @('push') -label 'git push' | Out-Null
   }
 
+  # LINE push — runs even when there were no data changes (sends a "quiet day"
+  # summary). PYTHONIOENCODING=utf-8 + -X utf8 keeps log output from crashing
+  # on cp950 consoles when alert text contains emoji.
+  Write-Log 'py -3 -X utf8 scripts/notify.py'
+  $env:PYTHONIOENCODING = 'utf-8'
+  Invoke-Native -exe 'py' -argList @('-3', '-X', 'utf8', 'scripts\notify.py') -label 'notify.py' | Out-Null
+
   Write-Log '--- run ok ---'
   exit 0
 } catch {
