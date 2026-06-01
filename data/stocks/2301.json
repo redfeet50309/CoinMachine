@@ -2,25 +2,25 @@
   "stock_id": "2301",
   "name": "光寶科",
   "market": "TWSE",
-  "last_updated": "2026-05-31T17:53:27+08:00",
-  "last_trade_date": "2026-05-29",
+  "last_updated": "2026-06-01T22:00:33+08:00",
+  "last_trade_date": "2026-06-01",
   "rule_version": "v1.3.0",
   "inactive": false,
   "latest": {
     "close": 234.5,
-    "volume": 58581295,
+    "volume": 35719806,
     "ma": {
-      "ma5": 235.6,
-      "ma10": 220.75,
-      "ma20": 211.2,
-      "ma60": 176.7167,
-      "ma120": 171.0208,
-      "ma240": 155.75
+      "ma5": 237.0,
+      "ma10": 223.45,
+      "ma20": 214.35,
+      "ma60": 178.0333,
+      "ma120": 171.6542,
+      "ma240": 156.2854
     },
     "macd": {
-      "dif": 15.5433,
-      "macd": 13.783,
-      "osc": 1.7603
+      "dif": 15.4284,
+      "macd": 14.1121,
+      "osc": 1.3164
     },
     "rsi": {
       "value": 65.3482,
@@ -30,11 +30,11 @@
       "strategy": null
     },
     "bb": {
-      "upper": 251.4547,
-      "middle": 211.2,
-      "lower": 170.9453,
-      "percent_b": 0.7894,
-      "bandwidth": 0.3812,
+      "upper": 251.419,
+      "middle": 214.35,
+      "lower": 177.281,
+      "percent_b": 0.7718,
+      "bandwidth": 0.3459,
       "bandwidth_pct20": 0.101,
       "bandwidth_pct05": 0.0725,
       "zone": "多頭區間",
@@ -45,10 +45,10 @@
       "divergence": "近期頂背離"
     },
     "pv": {
-      "price_change_pct": 0.0174,
-      "volume_change_pct": 0.0722,
-      "return_n": 0.4127,
-      "state": "價漲量平",
+      "price_change_pct": 0.0,
+      "volume_change_pct": -0.3903,
+      "return_n": 0.3673,
+      "state": "價平量縮",
       "category": "盤整",
       "phase": "大漲後高位",
       "alert": null
@@ -59,7 +59,7 @@
       "ma_spread_state": "向上發散",
       "macd_zone": "零軸之上 (多頭)",
       "macd_cross": null,
-      "macd_histogram": "紅柱縮短 (連3日)",
+      "macd_histogram": "紅柱縮短 (連4日)",
       "macd_divergence": null,
       "rsi_zone": "中性",
       "rsi_numbing": null,
@@ -71,7 +71,7 @@
       "bb_bandwidth_state": "正常",
       "bb_range_strategy": null,
       "bb_divergence": "近期頂背離",
-      "pv_state": "價漲量平",
+      "pv_state": "價平量縮",
       "pv_category": "盤整",
       "market_phase": "大漲後高位",
       "pv_alert": null
@@ -81,29 +81,6 @@
     ]
   },
   "history": [
-    {
-      "date": "2025-04-08",
-      "o": 78.0,
-      "h": 81.0,
-      "l": 76.9,
-      "c": 76.9,
-      "v": 17834960,
-      "ma5": null,
-      "ma20": null,
-      "ma60": null,
-      "dif": 0.0,
-      "macd": 0.0,
-      "osc": 0.0,
-      "rsi": null,
-      "bb_upper": null,
-      "bb_middle": null,
-      "bb_lower": null,
-      "percent_b": null,
-      "bandwidth": null,
-      "bandwidth_pct20": null,
-      "price_change_pct": null,
-      "volume_change_pct": null
-    },
     {
       "date": "2025-04-09",
       "o": 72.9,
@@ -6520,6 +6497,29 @@
       "bandwidth_pct20": 0.101,
       "price_change_pct": 0.0174,
       "volume_change_pct": 0.0722
+    },
+    {
+      "date": "2026-06-01",
+      "o": 239.0,
+      "h": 241.5,
+      "l": 231.0,
+      "c": 234.5,
+      "v": 35719806,
+      "ma5": 237.0,
+      "ma20": 214.35,
+      "ma60": 178.0333,
+      "dif": 15.4284,
+      "macd": 14.1121,
+      "osc": 1.3164,
+      "rsi": 65.3482,
+      "bb_upper": 251.419,
+      "bb_middle": 214.35,
+      "bb_lower": 177.281,
+      "percent_b": 0.7718,
+      "bandwidth": 0.3459,
+      "bandwidth_pct20": 0.101,
+      "price_change_pct": 0.0,
+      "volume_change_pct": -0.3903
     }
   ]
 }

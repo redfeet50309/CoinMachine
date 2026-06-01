@@ -2,39 +2,39 @@
   "stock_id": "2449",
   "name": "京元電子",
   "market": "TWSE",
-  "last_updated": "2026-05-31T17:53:49+08:00",
-  "last_trade_date": "2026-05-29",
+  "last_updated": "2026-06-01T22:01:17+08:00",
+  "last_trade_date": "2026-06-01",
   "rule_version": "v1.3.0",
   "inactive": false,
   "latest": {
-    "close": 328.5,
-    "volume": 68983487,
+    "close": 318.0,
+    "volume": 51661349,
     "ma": {
-      "ma5": 323.9,
-      "ma10": 306.3,
-      "ma20": 311.45,
-      "ma60": 294.6,
-      "ma120": 278.0542,
-      "ma240": 213.0575
+      "ma5": 324.1,
+      "ma10": 308.6,
+      "ma20": 310.725,
+      "ma60": 295.2667,
+      "ma120": 278.9375,
+      "ma240": 213.9688
     },
     "macd": {
-      "dif": 6.5457,
-      "macd": 4.0679,
-      "osc": 2.4778
+      "dif": 6.5553,
+      "macd": 4.5654,
+      "osc": 1.9899
     },
     "rsi": {
-      "value": 57.8472,
+      "value": 54.0688,
       "zone": "中性",
       "numbing": null,
       "divergence": null,
       "strategy": null
     },
     "bb": {
-      "upper": 351.287,
-      "middle": 311.45,
-      "lower": 271.613,
-      "percent_b": 0.714,
-      "bandwidth": 0.2558,
+      "upper": 349.5174,
+      "middle": 310.725,
+      "lower": 271.9326,
+      "percent_b": 0.5938,
+      "bandwidth": 0.2497,
       "bandwidth_pct20": 0.1355,
       "bandwidth_pct05": 0.0928,
       "zone": "多頭區間",
@@ -45,11 +45,11 @@
       "divergence": null
     },
     "pv": {
-      "price_change_pct": 0.0266,
-      "volume_change_pct": -0.0529,
-      "return_n": 0.086,
-      "state": "價漲量平",
-      "category": "盤整",
+      "price_change_pct": -0.032,
+      "volume_change_pct": -0.2511,
+      "return_n": -0.0436,
+      "state": "價跌量縮",
+      "category": "趨勢確認",
       "phase": "初期上漲",
       "alert": null
     },
@@ -59,7 +59,7 @@
       "ma_spread_state": "向上發散",
       "macd_zone": "零軸之上 (多頭)",
       "macd_cross": null,
-      "macd_histogram": "紅柱變長 (連4日)",
+      "macd_histogram": "紅柱縮短",
       "macd_divergence": null,
       "rsi_zone": "中性",
       "rsi_numbing": null,
@@ -71,8 +71,8 @@
       "bb_bandwidth_state": "正常",
       "bb_range_strategy": null,
       "bb_divergence": null,
-      "pv_state": "價漲量平",
-      "pv_category": "盤整",
+      "pv_state": "價跌量縮",
+      "pv_category": "趨勢確認",
       "market_phase": "初期上漲",
       "pv_alert": null
     },
@@ -81,29 +81,6 @@
     ]
   },
   "history": [
-    {
-      "date": "2025-04-08",
-      "o": 74.7,
-      "h": 76.0,
-      "l": 74.7,
-      "c": 74.7,
-      "v": 17961140,
-      "ma5": null,
-      "ma20": null,
-      "ma60": null,
-      "dif": 0.0,
-      "macd": 0.0,
-      "osc": 0.0,
-      "rsi": null,
-      "bb_upper": null,
-      "bb_middle": null,
-      "bb_lower": null,
-      "percent_b": null,
-      "bandwidth": null,
-      "bandwidth_pct20": null,
-      "price_change_pct": null,
-      "volume_change_pct": null
-    },
     {
       "date": "2025-04-09",
       "o": 78.4,
@@ -6520,6 +6497,29 @@
       "bandwidth_pct20": 0.1355,
       "price_change_pct": 0.0266,
       "volume_change_pct": -0.0529
+    },
+    {
+      "date": "2026-06-01",
+      "o": 328.5,
+      "h": 329.5,
+      "l": 317.0,
+      "c": 318.0,
+      "v": 51661349,
+      "ma5": 324.1,
+      "ma20": 310.725,
+      "ma60": 295.2667,
+      "dif": 6.5553,
+      "macd": 4.5654,
+      "osc": 1.9899,
+      "rsi": 54.0688,
+      "bb_upper": 349.5174,
+      "bb_middle": 310.725,
+      "bb_lower": 271.9326,
+      "percent_b": 0.5938,
+      "bandwidth": 0.2497,
+      "bandwidth_pct20": 0.1355,
+      "price_change_pct": -0.032,
+      "volume_change_pct": -0.2511
     }
   ]
 }

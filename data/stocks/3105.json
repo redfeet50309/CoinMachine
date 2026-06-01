@@ -2,39 +2,39 @@
   "stock_id": "3105",
   "name": "穩懋",
   "market": "TPEx",
-  "last_updated": "2026-05-31T17:53:37+08:00",
-  "last_trade_date": "2026-05-29",
+  "last_updated": "2026-06-01T22:00:52+08:00",
+  "last_trade_date": "2026-06-01",
   "rule_version": "v1.3.0",
   "inactive": false,
   "latest": {
-    "close": 527.0,
-    "volume": 26012000,
+    "close": 530.0,
+    "volume": 23733000,
     "ma": {
-      "ma5": 544.0,
-      "ma10": 508.75,
-      "ma20": 506.725,
-      "ma60": 439.9417,
-      "ma120": 324.3708,
-      "ma240": 209.5371
+      "ma5": 541.4,
+      "ma10": 516.7,
+      "ma20": 507.025,
+      "ma60": 443.8833,
+      "ma120": 327.6917,
+      "ma240": 211.3913
     },
     "macd": {
-      "dif": 16.4543,
-      "macd": 14.2589,
-      "osc": 2.1954
+      "dif": 16.1438,
+      "macd": 14.6359,
+      "osc": 1.508
     },
     "rsi": {
-      "value": 55.2312,
+      "value": 55.7597,
       "zone": "中性",
       "numbing": null,
       "divergence": null,
       "strategy": null
     },
     "bb": {
-      "upper": 577.2207,
-      "middle": 506.725,
-      "lower": 436.2293,
-      "percent_b": 0.6438,
-      "bandwidth": 0.2782,
+      "upper": 577.8625,
+      "middle": 507.025,
+      "lower": 436.1875,
+      "percent_b": 0.6622,
+      "bandwidth": 0.2794,
       "bandwidth_pct20": 0.111,
       "bandwidth_pct05": 0.081,
       "zone": "多頭區間",
@@ -45,10 +45,10 @@
       "divergence": null
     },
     "pv": {
-      "price_change_pct": -0.0019,
-      "volume_change_pct": -0.4665,
-      "return_n": -0.0168,
-      "state": "價平量縮",
+      "price_change_pct": 0.0057,
+      "volume_change_pct": -0.0876,
+      "return_n": 0.0115,
+      "state": "價漲量平",
       "category": "盤整",
       "phase": "初期上漲",
       "alert": null
@@ -59,7 +59,7 @@
       "ma_spread_state": "向上發散",
       "macd_zone": "零軸之上 (多頭)",
       "macd_cross": null,
-      "macd_histogram": "紅柱縮短 (連3日)",
+      "macd_histogram": "紅柱縮短 (連4日)",
       "macd_divergence": "近期頂背離",
       "rsi_zone": "中性",
       "rsi_numbing": null,
@@ -71,7 +71,7 @@
       "bb_bandwidth_state": "正常",
       "bb_range_strategy": null,
       "bb_divergence": null,
-      "pv_state": "價平量縮",
+      "pv_state": "價漲量平",
       "pv_category": "盤整",
       "market_phase": "初期上漲",
       "pv_alert": null
@@ -81,29 +81,6 @@
     ]
   },
   "history": [
-    {
-      "date": "2025-04-08",
-      "o": 82.7,
-      "h": 85.0,
-      "l": 82.7,
-      "c": 82.7,
-      "v": 3407000,
-      "ma5": null,
-      "ma20": null,
-      "ma60": null,
-      "dif": 0.0,
-      "macd": 0.0,
-      "osc": 0.0,
-      "rsi": null,
-      "bb_upper": null,
-      "bb_middle": null,
-      "bb_lower": null,
-      "percent_b": null,
-      "bandwidth": null,
-      "bandwidth_pct20": null,
-      "price_change_pct": null,
-      "volume_change_pct": null
-    },
     {
       "date": "2025-04-09",
       "o": 75.0,
@@ -6520,6 +6497,29 @@
       "bandwidth_pct20": 0.111,
       "price_change_pct": -0.0019,
       "volume_change_pct": -0.4665
+    },
+    {
+      "date": "2026-06-01",
+      "o": 528.0,
+      "h": 546.0,
+      "l": 522.0,
+      "c": 530.0,
+      "v": 23733000,
+      "ma5": 541.4,
+      "ma20": 507.025,
+      "ma60": 443.8833,
+      "dif": 16.1438,
+      "macd": 14.6359,
+      "osc": 1.508,
+      "rsi": 55.7597,
+      "bb_upper": 577.8625,
+      "bb_middle": 507.025,
+      "bb_lower": 436.1875,
+      "percent_b": 0.6622,
+      "bandwidth": 0.2794,
+      "bandwidth_pct20": 0.111,
+      "price_change_pct": 0.0057,
+      "volume_change_pct": -0.0876
     }
   ]
 }

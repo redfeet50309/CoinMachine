@@ -2,39 +2,39 @@
   "stock_id": "2368",
   "name": "金像電",
   "market": "TWSE",
-  "last_updated": "2026-05-31T17:53:46+08:00",
-  "last_trade_date": "2026-05-29",
+  "last_updated": "2026-06-01T22:01:11+08:00",
+  "last_trade_date": "2026-06-01",
   "rule_version": "v1.3.0",
   "inactive": false,
   "latest": {
-    "close": 1320.0,
-    "volume": 6593515,
+    "close": 1325.0,
+    "volume": 4844214,
     "ma": {
-      "ma5": 1374.0,
-      "ma10": 1325.5,
-      "ma20": 1363.0,
-      "ma60": 1141.6333,
-      "ma120": 908.2667,
-      "ma240": 655.7563
+      "ma5": 1354.0,
+      "ma10": 1333.0,
+      "ma20": 1357.25,
+      "ma60": 1151.9,
+      "ma120": 914.225,
+      "ma240": 660.1146
     },
     "macd": {
-      "dif": 32.3335,
-      "macd": 46.4519,
-      "osc": -14.1184
+      "dif": 28.4889,
+      "macd": 42.8593,
+      "osc": -14.3704
     },
     "rsi": {
-      "value": 50.9976,
+      "value": 51.3737,
       "zone": "中性",
       "numbing": null,
       "divergence": null,
       "strategy": null
     },
     "bb": {
-      "upper": 1508.2033,
-      "middle": 1363.0,
-      "lower": 1217.7967,
-      "percent_b": 0.3519,
-      "bandwidth": 0.2131,
+      "upper": 1498.8648,
+      "middle": 1357.25,
+      "lower": 1215.6352,
+      "percent_b": 0.3861,
+      "bandwidth": 0.2087,
       "bandwidth_pct20": 0.175,
       "bandwidth_pct05": 0.1351,
       "zone": "空頭區間",
@@ -45,21 +45,21 @@
       "divergence": null
     },
     "pv": {
-      "price_change_pct": 0.0115,
-      "volume_change_pct": 0.2763,
-      "return_n": -0.0504,
-      "state": "價漲量增",
-      "category": "趨勢確認",
-      "phase": "初期上漲",
-      "alert": "✓ 量價同步:多頭啟動確認"
+      "price_change_pct": 0.0038,
+      "volume_change_pct": -0.2653,
+      "return_n": -0.0799,
+      "state": "價平量縮",
+      "category": "盤整",
+      "phase": "盤整",
+      "alert": null
     },
     "signals": {
-      "ma_trend": "多頭排列",
-      "ma_cross": null,
-      "ma_spread_state": "向上發散",
+      "ma_trend": "盤整",
+      "ma_cross": "死亡交叉 (MA5 下穿 MA20)",
+      "ma_spread_state": "發散",
       "macd_zone": "零軸之上 (多頭)",
       "macd_cross": null,
-      "macd_histogram": "綠柱變長 (連3日)",
+      "macd_histogram": "綠柱變長 (連4日)",
       "macd_divergence": null,
       "rsi_zone": "中性",
       "rsi_numbing": null,
@@ -71,40 +71,16 @@
       "bb_bandwidth_state": "正常",
       "bb_range_strategy": null,
       "bb_divergence": null,
-      "pv_state": "價漲量增",
-      "pv_category": "趨勢確認",
-      "market_phase": "初期上漲",
-      "pv_alert": "✓ 量價同步:多頭啟動確認"
+      "pv_state": "價平量縮",
+      "pv_category": "盤整",
+      "market_phase": "盤整",
+      "pv_alert": null
     },
     "alerts": [
-      "均線多頭向上發散",
-      "✓ 量價同步:多頭啟動確認"
+      "今日：MA 死亡交叉 (MA5 下穿 MA20)"
     ]
   },
   "history": [
-    {
-      "date": "2025-04-08",
-      "o": 158.0,
-      "h": 158.0,
-      "l": 158.0,
-      "c": 158.0,
-      "v": 1089069,
-      "ma5": null,
-      "ma20": null,
-      "ma60": null,
-      "dif": 0.0,
-      "macd": 0.0,
-      "osc": 0.0,
-      "rsi": null,
-      "bb_upper": null,
-      "bb_middle": null,
-      "bb_lower": null,
-      "percent_b": null,
-      "bandwidth": null,
-      "bandwidth_pct20": null,
-      "price_change_pct": null,
-      "volume_change_pct": null
-    },
     {
       "date": "2025-04-09",
       "o": 142.5,
@@ -6521,6 +6497,29 @@
       "bandwidth_pct20": 0.175,
       "price_change_pct": 0.0115,
       "volume_change_pct": 0.2763
+    },
+    {
+      "date": "2026-06-01",
+      "o": 1345.0,
+      "h": 1350.0,
+      "l": 1300.0,
+      "c": 1325.0,
+      "v": 4844214,
+      "ma5": 1354.0,
+      "ma20": 1357.25,
+      "ma60": 1151.9,
+      "dif": 28.4889,
+      "macd": 42.8593,
+      "osc": -14.3704,
+      "rsi": 51.3737,
+      "bb_upper": 1498.8648,
+      "bb_middle": 1357.25,
+      "bb_lower": 1215.6352,
+      "percent_b": 0.3861,
+      "bandwidth": 0.2087,
+      "bandwidth_pct20": 0.175,
+      "price_change_pct": 0.0038,
+      "volume_change_pct": -0.2653
     }
   ]
 }
