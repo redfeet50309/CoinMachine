@@ -6,6 +6,10 @@
 #   1. Make sure 'git' and 'python' are on PATH
 #   2. Make sure 'gh auth setup-git' has been run (so push works without prompt)
 #   3. Register with Task Scheduler:  .\scripts\register_task.ps1
+#
+# Pass -Force to bypass the schedule guard (manual catch-up at any time / day).
+
+param([switch]$Force)
 
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -45,6 +49,32 @@ function Invoke-Native($exe, $argList, $label) {
     return $proc.ExitCode
   } finally {
     Remove-Item $tmpOut, $tmpErr -ErrorAction SilentlyContinue
+  }
+}
+
+$todayStr = (Get-Date).ToString('yyyy-MM-dd')
+$marker = Join-Path $repo 'data\last_success_date.txt'
+
+# --- Schedule guard (bypass with -Force) ---
+# This script is triggered by BOTH the 22:00 weekly schedule AND an at-logon
+# trigger (a late boot catches up a missed 22:00 run). The guard makes the
+# logon trigger safe: it must not run on weekends, must not pre-empt the 22:00
+# fetch from a morning logon (market data isn't settled yet), and must not
+# re-run / re-push if today already completed.
+if (-not $Force) {
+  $now = Get-Date
+  if (($now.DayOfWeek -eq 'Saturday') -or ($now.DayOfWeek -eq 'Sunday')) {
+    Write-Log "skip: weekend ($($now.DayOfWeek)) — no trading data"
+    exit 0
+  }
+  $lastSuccess = if (Test-Path $marker) { (Get-Content $marker -Raw).Trim() } else { '' }
+  if ($lastSuccess -eq $todayStr) {
+    Write-Log "skip: already completed today ($lastSuccess)"
+    exit 0
+  }
+  if ($now.Hour -lt 22) {
+    Write-Log "skip: before 22:00 (now $($now.ToString('HH:mm'))) — wait for the scheduled run or a later logon"
+    exit 0
   }
 }
 
@@ -91,6 +121,10 @@ try {
   # NOTE: LINE push is NOT called here — build_dataset.py already invokes
   # notify (send_daily_summary) at the end of its run. Adding a second call
   # here pushed the message twice (seen 2026-05-31 17:56). One push per build.
+
+  # Mark today done so the at-logon catch-up trigger won't re-run / re-push
+  # today. Written only on success — a failed run retries on the next logon.
+  Set-Content -Path $marker -Value $todayStr -Encoding utf8 -NoNewline
 
   Write-Log '--- run ok ---'
   exit 0

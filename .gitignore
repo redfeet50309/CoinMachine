@@ -14,6 +14,7 @@ node_modules/
 build/
 dist/
 data/last_run.log
+data/last_success_date.txt
 .playwright-mcp/
 spec.json
 yahoo_*.json
