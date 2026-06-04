@@ -2,41 +2,41 @@
   "stock_id": "3135",
   "name": "凌航",
   "market": "TWSE",
-  "last_updated": "2026-06-03T22:11:05+08:00",
-  "last_trade_date": "2026-06-03",
+  "last_updated": "2026-06-04T22:00:28+08:00",
+  "last_trade_date": "2026-06-04",
   "rule_version": "v1.3.0",
   "inactive": false,
   "latest": {
-    "close": 238.5,
-    "volume": 5141348,
+    "close": 240.5,
+    "volume": 5198044,
     "ma": {
-      "ma5": 247.9,
-      "ma10": 232.7,
-      "ma20": 215.775,
-      "ma60": 155.425,
-      "ma120": 126.0567,
+      "ma5": 246.0,
+      "ma10": 237.2,
+      "ma20": 219.325,
+      "ma60": 157.5417,
+      "ma120": 127.585,
       "ma240": null
     },
     "macd": {
-      "dif": 24.5206,
-      "macd": 23.673,
-      "osc": 0.8477
+      "dif": 23.5785,
+      "macd": 23.6541,
+      "osc": -0.0755
     },
     "rsi": {
-      "value": 66.0377,
+      "value": 66.6495,
       "zone": "中性",
       "numbing": null,
       "divergence": "近期頂背離",
       "strategy": null
     },
     "bb": {
-      "upper": 265.387,
-      "middle": 215.775,
-      "lower": 166.163,
-      "percent_b": 0.729,
-      "bandwidth": 0.4598,
-      "bandwidth_pct20": 0.2823,
-      "bandwidth_pct05": 0.2201,
+      "upper": 265.2045,
+      "middle": 219.325,
+      "lower": 173.4455,
+      "percent_b": 0.7308,
+      "bandwidth": 0.4184,
+      "bandwidth_pct20": 0.2827,
+      "bandwidth_pct05": 0.2203,
       "zone": "多頭區間",
       "cross": null,
       "percent_b_zone": "中性",
@@ -45,11 +45,11 @@
       "divergence": null
     },
     "pv": {
-      "price_change_pct": -0.0062,
-      "volume_change_pct": -0.2899,
-      "return_n": 0.3826,
-      "state": "價跌量縮",
-      "category": "趨勢確認",
+      "price_change_pct": 0.0084,
+      "volume_change_pct": 0.011,
+      "return_n": 0.4189,
+      "state": "價漲量平",
+      "category": "盤整",
       "phase": "大漲後高位",
       "alert": null
     },
@@ -58,8 +58,8 @@
       "ma_cross": null,
       "ma_spread_state": "向上發散",
       "macd_zone": "零軸之上 (多頭)",
-      "macd_cross": null,
-      "macd_histogram": "紅柱縮短 (連4日)",
+      "macd_cross": "死亡交叉 (弱回檔)",
+      "macd_histogram": "綠柱翻落",
       "macd_divergence": null,
       "rsi_zone": "中性",
       "rsi_numbing": null,
@@ -71,12 +71,13 @@
       "bb_bandwidth_state": "正常",
       "bb_range_strategy": null,
       "bb_divergence": null,
-      "pv_state": "價跌量縮",
-      "pv_category": "趨勢確認",
+      "pv_state": "價漲量平",
+      "pv_category": "盤整",
       "market_phase": "大漲後高位",
       "pv_alert": null
     },
     "alerts": [
+      "今日：MACD 死亡交叉 (弱回檔)",
       "均線多頭向上發散"
     ]
   },
@@ -4657,6 +4658,29 @@
       "bandwidth_pct20": 0.2823,
       "price_change_pct": -0.0062,
       "volume_change_pct": -0.2899
+    },
+    {
+      "date": "2026-06-04",
+      "o": 238.5,
+      "h": 249.0,
+      "l": 238.0,
+      "c": 240.5,
+      "v": 5198044,
+      "ma5": 246.0,
+      "ma20": 219.325,
+      "ma60": 157.5417,
+      "dif": 23.5785,
+      "macd": 23.6541,
+      "osc": -0.0755,
+      "rsi": 66.6495,
+      "bb_upper": 265.2045,
+      "bb_middle": 219.325,
+      "bb_lower": 173.4455,
+      "percent_b": 0.7308,
+      "bandwidth": 0.4184,
+      "bandwidth_pct20": 0.2827,
+      "price_change_pct": 0.0084,
+      "volume_change_pct": 0.011
     }
   ]
 }
