@@ -521,7 +521,12 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as e:  # noqa: BLE001
             log.error("notify failed: %s (build itself succeeded)", e)
 
-    return 0 if not failures else 1
+    # Exit 0 if ANY stock produced output, so run_local.ps1 still commits/pushes
+    # the good data and writes the success marker — preventing a same-day
+    # catch-up re-run from double-pushing LINE. Exit 1 only when EVERY stock
+    # failed (nothing to push), which genuinely warrants a retry. Failed-stock
+    # detail still surfaces via meta.json["failures"] + the website footer.
+    return 0 if results else 1
 
 
 if __name__ == "__main__":
