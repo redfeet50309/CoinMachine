@@ -52,30 +52,37 @@ function Invoke-Native($exe, $argList, $label) {
   }
 }
 
-$todayStr = (Get-Date).ToString('yyyy-MM-dd')
 $marker = Join-Path $repo 'data\last_success_date.txt'
 
+# The most recent trading day whose data should be settled & fetchable *now*.
+# This is the date a run is responsible for having captured.
+#   - Before 22:00 on a weekday, today's bar isn't settled yet -> use yesterday
+#     (preserves the old "don't fetch an unsettled same-day bar" protection).
+#   - Weekends (and a rolled-back Sat/Sun) step back to the preceding Friday.
+$now = Get-Date
+$target = $now.Date
+if ($now.Hour -lt 22) { $target = $target.AddDays(-1) }
+while (($target.DayOfWeek -eq 'Saturday') -or ($target.DayOfWeek -eq 'Sunday')) {
+  $target = $target.AddDays(-1)
+}
+$targetStr = $target.ToString('yyyy-MM-dd')
+
 # --- Schedule guard (bypass with -Force) ---
-# This script is triggered by BOTH the 22:00 weekly schedule AND an at-logon
-# trigger (a late boot catches up a missed 22:00 run). The guard makes the
-# logon trigger safe: it must not run on weekends, must not pre-empt the 22:00
-# fetch from a morning logon (market data isn't settled yet), and must not
-# re-run / re-push if today already completed.
+# Triggered by BOTH the 22:00 weekly schedule AND an at-logon catch-up trigger.
+# The guard is DATA-aware, not calendar-crude: skip only when the most recent
+# settled trading day is already captured. This lets a missed Friday run be
+# recovered on a weekend, and a missed weekday run be recovered after midnight
+# (cases the old blanket weekend / before-22:00 skips wrongly blocked) while
+# still never fetching an unsettled same-day bar before 22:00. The marker holds
+# the trading date captured ($targetStr), not the calendar run date, so the
+# string compare is a correct date compare (ISO dates sort lexically).
 if (-not $Force) {
-  $now = Get-Date
-  if (($now.DayOfWeek -eq 'Saturday') -or ($now.DayOfWeek -eq 'Sunday')) {
-    Write-Log "skip: weekend ($($now.DayOfWeek)) — no trading data"
+  $captured = if (Test-Path $marker) { (Get-Content $marker -Raw).Trim() } else { '' }
+  if ($captured -ge $targetStr) {
+    Write-Log "skip: latest settled trading day already captured (have $captured, need $targetStr)"
     exit 0
   }
-  $lastSuccess = if (Test-Path $marker) { (Get-Content $marker -Raw).Trim() } else { '' }
-  if ($lastSuccess -eq $todayStr) {
-    Write-Log "skip: already completed today ($lastSuccess)"
-    exit 0
-  }
-  if ($now.Hour -lt 22) {
-    Write-Log "skip: before 22:00 (now $($now.ToString('HH:mm'))) — wait for the scheduled run or a later logon"
-    exit 0
-  }
+  Write-Log "run: trading day $targetStr not yet captured (have '$captured')"
 }
 
 Write-Log '--- run start ---'
@@ -122,9 +129,10 @@ try {
   # notify (send_daily_summary) at the end of its run. Adding a second call
   # here pushed the message twice (seen 2026-05-31 17:56). One push per build.
 
-  # Mark today done so the at-logon catch-up trigger won't re-run / re-push
-  # today. Written only on success — a failed run retries on the next logon.
-  Set-Content -Path $marker -Value $todayStr -Encoding utf8 -NoNewline
+  # Record the trading date we captured ($targetStr, NOT the run date) so the
+  # data-aware guard skips redundant re-runs yet still allows recovering an
+  # older missed day. Written only on success -- a failed run retries.
+  Set-Content -Path $marker -Value $targetStr -Encoding utf8 -NoNewline
 
   Write-Log '--- run ok ---'
   exit 0
